@@ -1,0 +1,1701 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
+
+<meta charset="utf-8">
+<meta name="generator" content="quarto-1.10.18">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+
+<meta name="author" content="Schuckers">
+<meta name="dcterms.date" content="2026-08-16">
+
+<title>Introduction to NFL Play-by-Play Analysis with nflfastR</title>
+<style>
+/* Default styles provided by pandoc.
+** See https://pandoc.org/MANUAL.html#variables-for-html for config info.
+*/
+span.smallcaps{font-variant: small-caps;}
+div.columns{display: flex; gap: 1.5em;}
+div.column{flex: auto;}
+@media screen {
+div.columns{gap: min(4vw, 1.5em);}
+div.column{overflow-x: auto;}
+}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+ul.task-list li input[type="checkbox"] {
+  width: 0.8em;
+  margin: 0 0.8em 0.2em -1em; /* quarto-specific, see https://github.com/quarto-dev/quarto-cli/issues/4556 */ 
+  vertical-align: middle;
+}
+/* CSS for syntax highlighting */
+html { -webkit-text-size-adjust: 100%; }
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+  { counter-reset: source-line 0; }
+pre.numberSource code > span
+  { position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+  { content: counter(source-line);
+    position: relative; left: -1em; text-align: right; vertical-align: baseline;
+    border: none; display: inline-block;
+    -webkit-touch-callout: none; -webkit-user-select: none;
+    -khtml-user-select: none; -moz-user-select: none;
+    -ms-user-select: none; user-select: none;
+    padding: 0 4px; width: 4em;
+  }
+pre.numberSource { margin-left: 3em;  padding-left: 4px; }
+div.sourceCode
+  {   }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
+</style>
+
+
+<script src="Starting_nflfastr_files/libs/clipboard/clipboard.min.js"></script>
+<script src="Starting_nflfastr_files/libs/quarto-html/quarto.js" type="module"></script>
+<script src="Starting_nflfastr_files/libs/quarto-html/tabsets/tabsets.js" type="module"></script>
+<script src="Starting_nflfastr_files/libs/quarto-html/popper.min.js"></script>
+<script src="Starting_nflfastr_files/libs/quarto-html/tippy.umd.min.js"></script>
+<script src="Starting_nflfastr_files/libs/quarto-html/anchor.min.js"></script>
+<link href="Starting_nflfastr_files/libs/quarto-html/tippy.css" rel="stylesheet">
+<link href="Starting_nflfastr_files/libs/quarto-html/quarto-syntax-highlighting-bb62276ab45c84d9efd712f51ff97b5a.css" rel="stylesheet" id="quarto-text-highlighting-styles">
+<script src="Starting_nflfastr_files/libs/bootstrap/bootstrap.min.js"></script>
+<link href="Starting_nflfastr_files/libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
+<link href="Starting_nflfastr_files/libs/bootstrap/bootstrap-f484210136fb8cef9943d2d2f897601a.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
+
+  <script src="https://cdnjs.cloudflare.com/polyfill/v3/polyfill.min.js?features=es6"></script>
+  <script defer="" src="https://cdn.jsdelivr.net/npm/mathjax@4/tex-chtml.js" type="text/javascript"></script>
+
+<script type="text/javascript">
+const typesetMath = (el) => {
+  if (window.MathJax) {
+    // MathJax Typeset
+    window.MathJax.typeset([el]);
+  } else if (window.katex) {
+    // KaTeX Render
+    var mathElements = el.getElementsByClassName("math");
+    var macros = [];
+    for (var i = 0; i < mathElements.length; i++) {
+      var texText = mathElements[i].firstChild;
+      if (mathElements[i].tagName == "SPAN" && texText && texText.data) {
+        window.katex.render(texText.data, mathElements[i], {
+          displayMode: mathElements[i].classList.contains('display'),
+          throwOnError: false,
+          macros: macros,
+          fleqn: false
+        });
+      }
+    }
+  }
+}
+window.Quarto = {
+  typesetMath
+};
+</script>
+
+</head>
+
+<body class="quarto-light">
+
+<div id="quarto-content" class="page-columns page-rows-contents page-layout-article">
+<div id="quarto-margin-sidebar" class="sidebar margin-sidebar">
+  <nav id="TOC" role="doc-toc" class="toc-active">
+    <h2 id="toc-title">Table of contents</h2>
+   
+  <ul>
+  <li><a href="#executive-overview-learning-objectives" id="toc-executive-overview-learning-objectives" class="nav-link active" data-scroll-target="#executive-overview-learning-objectives"><span class="header-section-number">1</span> Executive Overview &amp; Learning Objectives</a>
+  <ul class="collapse">
+  <li><a href="#key-objectives" id="toc-key-objectives" class="nav-link" data-scroll-target="#key-objectives"><span class="header-section-number">1.1</span> Key Objectives</a></li>
+  </ul></li>
+  <li><a href="#environment-setup-required-libraries" id="toc-environment-setup-required-libraries" class="nav-link" data-scroll-target="#environment-setup-required-libraries"><span class="header-section-number">2</span> Environment Setup &amp; Required Libraries</a>
+  <ul class="collapse">
+  <li><a href="#tasks" id="toc-tasks" class="nav-link" data-scroll-target="#tasks"><span class="header-section-number">2.1</span> Tasks</a></li>
+  <li><a href="#instructor-tips-for-deployment" id="toc-instructor-tips-for-deployment" class="nav-link" data-scroll-target="#instructor-tips-for-deployment"><span class="header-section-number">2.2</span> Instructor Tips for Deployment</a></li>
+  </ul></li>
+  </ul>
+</nav>
+</div>
+<main class="content" id="quarto-document-content">
+
+<header id="title-block-header" class="quarto-title-block default">
+<div class="quarto-title">
+<h1 class="title">Introduction to NFL Play-by-Play Analysis with <code>nflfastR</code></h1>
+<p class="subtitle lead">SPOA 4001/ItCS 5010: American Football Analytics</p>
+</div>
+
+
+
+<div class="quarto-title-meta">
+
+    <div>
+    <div class="quarto-title-meta-heading">Author</div>
+    <div class="quarto-title-meta-contents">
+             <p>Schuckers </p>
+          </div>
+  </div>
+    
+    <div>
+    <div class="quarto-title-meta-heading">Published</div>
+    <div class="quarto-title-meta-contents">
+      <p class="date">August 16, 2026</p>
+    </div>
+  </div>
+  
+    
+  </div>
+  
+
+
+</header>
+
+
+<section id="executive-overview-learning-objectives" class="level2" data-number="1">
+<h2 data-number="1" class="anchored" data-anchor-id="executive-overview-learning-objectives"><span class="header-section-number">1</span> Executive Overview &amp; Learning Objectives</h2>
+<p>In advanced sports analytics, play-by-play data provides the granular foundation needed to evaluate team efficiency, player performance, and tactical decisions. In this lab, we utilize <strong><code>nflfastR</code></strong>, an R library that provides fast access to cleaned NFL play-by-play data embedded with advanced statistical metrics.</p>
+<section id="key-objectives" class="level3" data-number="1.1">
+<h3 data-number="1.1" class="anchored" data-anchor-id="key-objectives"><span class="header-section-number">1.1</span> Key Objectives</h3>
+<p>By the end of this lab, students will be able to: 1. <strong>Acquire and Filter Play-by-Play Data:</strong> Download official play-by-play data for specific weeks and season types using <code>nflfastR</code>. 2. <strong>Understand Expected Points Added (EPA):</strong> Evaluate play-level efficiency using Expected Points Added (<span class="math inline">\(\text{EPA}\)</span>) and Success Rate. 3. <strong>Data Wrangling with <code>dplyr</code>:</strong> Aggregate non-trivial play-level metrics to team-level summaries for both offense and defense. 4. <strong>Publication-Quality Reporting:</strong> Generate dynamic tables with <code>gt</code> and custom visualizations using <code>nflplotR</code> and <code>ggplot2</code>.</p>
+<hr>
+</section>
+</section>
+<section id="environment-setup-required-libraries" class="level2" data-number="2">
+<h2 data-number="2" class="anchored" data-anchor-id="environment-setup-required-libraries"><span class="header-section-number">2</span> Environment Setup &amp; Required Libraries</h2>
+<p>Ensure you have the required packages installed before running this document:</p>
+<div class="cell">
+<details open="" class="code-fold">
+<summary>Show R Code</summary>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb1"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Uncomment if packages are not yet installed:</span></span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="co"># install.packages(c("tidyverse", "nflfastR", "nflplotR", "gt", "knitr"))</span></span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(tidyverse)</span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(nflfastR)</span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(nflplotR)</span>
+<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(gt)</span>
+<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(knitr)</span>
+<span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-9"><a href="#cb1-9" aria-hidden="true" tabindex="-1"></a><span class="co"># Set global option to avoid scientific notation in printouts</span></span>
+<span id="cb1-10"><a href="#cb1-10" aria-hidden="true" tabindex="-1"></a><span class="fu">options</span>(<span class="at">scipen =</span> <span class="dv">999</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</details>
+</div>
+<div class="cell">
+<details open="" class="code-fold">
+<summary>Show R Code</summary>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb2"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="co"># 1. Fetch 2025 play-by-play data</span></span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a>raw_pbp_2025 <span class="ot">&lt;-</span> nflfastR<span class="sc">::</span><span class="fu">load_pbp</span>(<span class="dv">2025</span>)</span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a><span class="co"># 2. Filter for Weeks 1-4 regular season scrimmage plays</span></span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a>pbp_w1_4 <span class="ot">&lt;-</span> raw_pbp_2025 <span class="sc">|&gt;</span></span>
+<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(</span>
+<span id="cb2-7"><a href="#cb2-7" aria-hidden="true" tabindex="-1"></a>    season_type <span class="sc">==</span> <span class="st">"REG"</span>,</span>
+<span id="cb2-8"><a href="#cb2-8" aria-hidden="true" tabindex="-1"></a>    week <span class="sc">&lt;=</span> <span class="dv">4</span>,</span>
+<span id="cb2-9"><a href="#cb2-9" aria-hidden="true" tabindex="-1"></a>    <span class="sc">!</span><span class="fu">is.na</span>(posteam),                  <span class="co"># Ensure there is an offensive team</span></span>
+<span id="cb2-10"><a href="#cb2-10" aria-hidden="true" tabindex="-1"></a>    play_type <span class="sc">%in%</span> <span class="fu">c</span>(<span class="st">"pass"</span>, <span class="st">"run"</span>) <span class="sc">|</span> pass <span class="sc">==</span> <span class="dv">1</span> <span class="sc">|</span> rush <span class="sc">==</span> <span class="dv">1</span>,</span>
+<span id="cb2-11"><a href="#cb2-11" aria-hidden="true" tabindex="-1"></a>    <span class="sc">!</span><span class="fu">is.na</span>(epa)                       <span class="co"># Retain valid EPA values</span></span>
+<span id="cb2-12"><a href="#cb2-12" aria-hidden="true" tabindex="-1"></a>  )</span>
+<span id="cb2-13"><a href="#cb2-13" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-14"><a href="#cb2-14" aria-hidden="true" tabindex="-1"></a><span class="co"># Inspect dataset dimensions</span></span>
+<span id="cb2-15"><a href="#cb2-15" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span>(<span class="st">"Dataset dimensions (rows x cols):"</span>, <span class="fu">dim</span>(pbp_w1_4), <span class="st">"</span><span class="sc">\n</span><span class="st">"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</details>
+<div class="cell-output cell-output-stdout">
+<pre><code>Dataset dimensions (rows x cols): 8149 372 </code></pre>
+</div>
+</div>
+<div class="cell">
+<details open="" class="code-fold">
+<summary>Show R Code</summary>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb4"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="co"># 1. Offensive Aggregation (posteam)</span></span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a>offense_summary <span class="ot">&lt;-</span> pbp_w1_4 <span class="sc">|&gt;</span></span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">group_by</span>(posteam) <span class="sc">|&gt;</span></span>
+<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">summarize</span>(</span>
+<span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a>    <span class="at">off_plays =</span> <span class="fu">n</span>(),</span>
+<span id="cb4-6"><a href="#cb4-6" aria-hidden="true" tabindex="-1"></a>    <span class="at">off_epa_per_play =</span> <span class="fu">mean</span>(epa, <span class="at">na.rm =</span> <span class="cn">TRUE</span>),</span>
+<span id="cb4-7"><a href="#cb4-7" aria-hidden="true" tabindex="-1"></a>    <span class="at">pass_epa =</span> <span class="fu">mean</span>(epa[pass <span class="sc">==</span> <span class="dv">1</span>], <span class="at">na.rm =</span> <span class="cn">TRUE</span>),</span>
+<span id="cb4-8"><a href="#cb4-8" aria-hidden="true" tabindex="-1"></a>    <span class="at">rush_epa =</span> <span class="fu">mean</span>(epa[rush <span class="sc">==</span> <span class="dv">1</span>], <span class="at">na.rm =</span> <span class="cn">TRUE</span>),</span>
+<span id="cb4-9"><a href="#cb4-9" aria-hidden="true" tabindex="-1"></a>    <span class="at">off_success_rate =</span> <span class="fu">mean</span>(success, <span class="at">na.rm =</span> <span class="cn">TRUE</span>),</span>
+<span id="cb4-10"><a href="#cb4-10" aria-hidden="true" tabindex="-1"></a>    <span class="at">dropback_pct =</span> <span class="fu">mean</span>(pass <span class="sc">==</span> <span class="dv">1</span>, <span class="at">na.rm =</span> <span class="cn">TRUE</span>),</span>
+<span id="cb4-11"><a href="#cb4-11" aria-hidden="true" tabindex="-1"></a>    <span class="at">.groups =</span> <span class="st">"drop"</span></span>
+<span id="cb4-12"><a href="#cb4-12" aria-hidden="true" tabindex="-1"></a>  )</span>
+<span id="cb4-13"><a href="#cb4-13" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-14"><a href="#cb4-14" aria-hidden="true" tabindex="-1"></a><span class="co"># 2. Defensive Aggregation (defteam)</span></span>
+<span id="cb4-15"><a href="#cb4-15" aria-hidden="true" tabindex="-1"></a>defense_summary <span class="ot">&lt;-</span> pbp_w1_4 <span class="sc">|&gt;</span></span>
+<span id="cb4-16"><a href="#cb4-16" aria-hidden="true" tabindex="-1"></a>  <span class="fu">group_by</span>(defteam) <span class="sc">|&gt;</span></span>
+<span id="cb4-17"><a href="#cb4-17" aria-hidden="true" tabindex="-1"></a>  <span class="fu">summarize</span>(</span>
+<span id="cb4-18"><a href="#cb4-18" aria-hidden="true" tabindex="-1"></a>    <span class="at">def_plays =</span> <span class="fu">n</span>(),</span>
+<span id="cb4-19"><a href="#cb4-19" aria-hidden="true" tabindex="-1"></a>    <span class="at">def_epa_allowed =</span> <span class="fu">mean</span>(epa, <span class="at">na.rm =</span> <span class="cn">TRUE</span>),</span>
+<span id="cb4-20"><a href="#cb4-20" aria-hidden="true" tabindex="-1"></a>    <span class="at">def_pass_epa_allowed =</span> <span class="fu">mean</span>(epa[pass <span class="sc">==</span> <span class="dv">1</span>], <span class="at">na.rm =</span> <span class="cn">TRUE</span>),</span>
+<span id="cb4-21"><a href="#cb4-21" aria-hidden="true" tabindex="-1"></a>    <span class="at">def_rush_epa_allowed =</span> <span class="fu">mean</span>(epa[rush <span class="sc">==</span> <span class="dv">1</span>], <span class="at">na.rm =</span> <span class="cn">TRUE</span>),</span>
+<span id="cb4-22"><a href="#cb4-22" aria-hidden="true" tabindex="-1"></a>    <span class="at">def_success_rate_allowed =</span> <span class="fu">mean</span>(success, <span class="at">na.rm =</span> <span class="cn">TRUE</span>),</span>
+<span id="cb4-23"><a href="#cb4-23" aria-hidden="true" tabindex="-1"></a>    <span class="at">.groups =</span> <span class="st">"drop"</span></span>
+<span id="cb4-24"><a href="#cb4-24" aria-hidden="true" tabindex="-1"></a>  )</span>
+<span id="cb4-25"><a href="#cb4-25" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-26"><a href="#cb4-26" aria-hidden="true" tabindex="-1"></a><span class="co"># 3. Join Offense &amp; Defense into a single Master Team Summary</span></span>
+<span id="cb4-27"><a href="#cb4-27" aria-hidden="true" tabindex="-1"></a>team_summary <span class="ot">&lt;-</span> offense_summary <span class="sc">|&gt;</span></span>
+<span id="cb4-28"><a href="#cb4-28" aria-hidden="true" tabindex="-1"></a>  <span class="fu">inner_join</span>(defense_summary, <span class="at">by =</span> <span class="fu">c</span>(<span class="st">"posteam"</span> <span class="ot">=</span> <span class="st">"defteam"</span>)) <span class="sc">|&gt;</span></span>
+<span id="cb4-29"><a href="#cb4-29" aria-hidden="true" tabindex="-1"></a>  <span class="fu">rename</span>(<span class="at">team =</span> posteam) <span class="sc">|&gt;</span></span>
+<span id="cb4-30"><a href="#cb4-30" aria-hidden="true" tabindex="-1"></a>  <span class="fu">arrange</span>(<span class="fu">desc</span>(off_epa_per_play))</span>
+<span id="cb4-31"><a href="#cb4-31" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-32"><a href="#cb4-32" aria-hidden="true" tabindex="-1"></a><span class="co"># Display top 5 teams by Offensive EPA</span></span>
+<span id="cb4-33"><a href="#cb4-33" aria-hidden="true" tabindex="-1"></a><span class="fu">head</span>(team_summary, <span class="dv">5</span>) <span class="sc">|&gt;</span> <span class="fu">kable</span>()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</details>
+<div class="cell-output-display">
+<table class="caption-top table table-sm table-striped small">
+<colgroup>
+<col style="width: 2%">
+<col style="width: 5%">
+<col style="width: 9%">
+<col style="width: 5%">
+<col style="width: 6%">
+<col style="width: 9%">
+<col style="width: 7%">
+<col style="width: 5%">
+<col style="width: 9%">
+<col style="width: 11%">
+<col style="width: 11%">
+<col style="width: 14%">
+</colgroup>
+<thead>
+<tr class="header">
+<th style="text-align: left;">team</th>
+<th style="text-align: right;">off_plays</th>
+<th style="text-align: right;">off_epa_per_play</th>
+<th style="text-align: right;">pass_epa</th>
+<th style="text-align: right;">rush_epa</th>
+<th style="text-align: right;">off_success_rate</th>
+<th style="text-align: right;">dropback_pct</th>
+<th style="text-align: right;">def_plays</th>
+<th style="text-align: right;">def_epa_allowed</th>
+<th style="text-align: right;">def_pass_epa_allowed</th>
+<th style="text-align: right;">def_rush_epa_allowed</th>
+<th style="text-align: right;">def_success_rate_allowed</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: left;">BUF</td>
+<td style="text-align: right;">268</td>
+<td style="text-align: right;">0.2295010</td>
+<td style="text-align: right;">0.3319893</td>
+<td style="text-align: right;">0.0910520</td>
+<td style="text-align: right;">0.4888060</td>
+<td style="text-align: right;">0.5746269</td>
+<td style="text-align: right;">226</td>
+<td style="text-align: right;">0.0116128</td>
+<td style="text-align: right;">-0.0233997</td>
+<td style="text-align: right;">0.0557285</td>
+<td style="text-align: right;">0.4203540</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">GB</td>
+<td style="text-align: right;">259</td>
+<td style="text-align: right;">0.1745451</td>
+<td style="text-align: right;">0.3333542</td>
+<td style="text-align: right;">-0.0306420</td>
+<td style="text-align: right;">0.4826255</td>
+<td style="text-align: right;">0.5637066</td>
+<td style="text-align: right;">268</td>
+<td style="text-align: right;">0.0093500</td>
+<td style="text-align: right;">0.0521050</td>
+<td style="text-align: right;">-0.0876309</td>
+<td style="text-align: right;">0.4216418</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">IND</td>
+<td style="text-align: right;">258</td>
+<td style="text-align: right;">0.1526518</td>
+<td style="text-align: right;">0.2391547</td>
+<td style="text-align: right;">0.0450875</td>
+<td style="text-align: right;">0.4961240</td>
+<td style="text-align: right;">0.5542636</td>
+<td style="text-align: right;">248</td>
+<td style="text-align: right;">-0.0238408</td>
+<td style="text-align: right;">0.0105811</td>
+<td style="text-align: right;">-0.1002843</td>
+<td style="text-align: right;">0.4758065</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">DAL</td>
+<td style="text-align: right;">292</td>
+<td style="text-align: right;">0.1460041</td>
+<td style="text-align: right;">0.2064610</td>
+<td style="text-align: right;">0.0263242</td>
+<td style="text-align: right;">0.4965753</td>
+<td style="text-align: right;">0.6643836</td>
+<td style="text-align: right;">265</td>
+<td style="text-align: right;">0.2613647</td>
+<td style="text-align: right;">0.4419810</td>
+<td style="text-align: right;">-0.0138603</td>
+<td style="text-align: right;">0.5056604</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">DET</td>
+<td style="text-align: right;">250</td>
+<td style="text-align: right;">0.1414695</td>
+<td style="text-align: right;">0.2882702</td>
+<td style="text-align: right;">-0.0281105</td>
+<td style="text-align: right;">0.4880000</td>
+<td style="text-align: right;">0.5360000</td>
+<td style="text-align: right;">238</td>
+<td style="text-align: right;">-0.0751622</td>
+<td style="text-align: right;">0.0160272</td>
+<td style="text-align: right;">-0.2278276</td>
+<td style="text-align: right;">0.3823529</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+<div class="cell">
+<details open="" class="code-fold">
+<summary>Show R Code</summary>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb5"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a>team_summary <span class="sc">|&gt;</span></span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">gt</span>() <span class="sc">|&gt;</span></span>
+<span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">tab_header</span>(</span>
+<span id="cb5-4"><a href="#cb5-4" aria-hidden="true" tabindex="-1"></a>    <span class="at">title =</span> <span class="fu">md</span>(<span class="st">"**NFL Team Performance Summary: 2025 (Weeks 1–4)**"</span>),</span>
+<span id="cb5-5"><a href="#cb5-5" aria-hidden="true" tabindex="-1"></a>    <span class="at">subtitle =</span> <span class="st">"Offensive and Defensive Efficiency Metrics Calculated via nflfastR"</span></span>
+<span id="cb5-6"><a href="#cb5-6" aria-hidden="true" tabindex="-1"></a>  ) <span class="sc">|&gt;</span></span>
+<span id="cb5-7"><a href="#cb5-7" aria-hidden="true" tabindex="-1"></a>  <span class="fu">cols_label</span>(</span>
+<span id="cb5-8"><a href="#cb5-8" aria-hidden="true" tabindex="-1"></a>    <span class="at">team =</span> <span class="st">"Team"</span>,</span>
+<span id="cb5-9"><a href="#cb5-9" aria-hidden="true" tabindex="-1"></a>    <span class="at">off_plays =</span> <span class="st">"Off. Plays"</span>,</span>
+<span id="cb5-10"><a href="#cb5-10" aria-hidden="true" tabindex="-1"></a>    <span class="at">off_epa_per_play =</span> <span class="st">"Off EPA/Play"</span>,</span>
+<span id="cb5-11"><a href="#cb5-11" aria-hidden="true" tabindex="-1"></a>    <span class="at">pass_epa =</span> <span class="st">"Pass EPA"</span>,</span>
+<span id="cb5-12"><a href="#cb5-12" aria-hidden="true" tabindex="-1"></a>    <span class="at">rush_epa =</span> <span class="st">"Rush EPA"</span>,</span>
+<span id="cb5-13"><a href="#cb5-13" aria-hidden="true" tabindex="-1"></a>    <span class="at">off_success_rate =</span> <span class="st">"Off. Success Rate"</span>,</span>
+<span id="cb5-14"><a href="#cb5-14" aria-hidden="true" tabindex="-1"></a>    <span class="at">dropback_pct =</span> <span class="st">"Pass Rate"</span>,</span>
+<span id="cb5-15"><a href="#cb5-15" aria-hidden="true" tabindex="-1"></a>    <span class="at">def_epa_allowed =</span> <span class="st">"Def EPA/Play"</span>,</span>
+<span id="cb5-16"><a href="#cb5-16" aria-hidden="true" tabindex="-1"></a>    <span class="at">def_success_rate_allowed =</span> <span class="st">"Def. Success Rate"</span></span>
+<span id="cb5-17"><a href="#cb5-17" aria-hidden="true" tabindex="-1"></a>  ) <span class="sc">|&gt;</span></span>
+<span id="cb5-18"><a href="#cb5-18" aria-hidden="true" tabindex="-1"></a>  <span class="fu">cols_hide</span>(<span class="at">columns =</span> <span class="fu">c</span>(def_plays, def_pass_epa_allowed, def_rush_epa_allowed)) <span class="sc">|&gt;</span></span>
+<span id="cb5-19"><a href="#cb5-19" aria-hidden="true" tabindex="-1"></a>  <span class="fu">fmt_number</span>(</span>
+<span id="cb5-20"><a href="#cb5-20" aria-hidden="true" tabindex="-1"></a>    <span class="at">columns =</span> <span class="fu">c</span>(off_epa_per_play, pass_epa, rush_epa, def_epa_allowed),</span>
+<span id="cb5-21"><a href="#cb5-21" aria-hidden="true" tabindex="-1"></a>    <span class="at">decimals =</span> <span class="dv">3</span></span>
+<span id="cb5-22"><a href="#cb5-22" aria-hidden="true" tabindex="-1"></a>  ) <span class="sc">|&gt;</span></span>
+<span id="cb5-23"><a href="#cb5-23" aria-hidden="true" tabindex="-1"></a>  <span class="fu">fmt_percent</span>(</span>
+<span id="cb5-24"><a href="#cb5-24" aria-hidden="true" tabindex="-1"></a>    <span class="at">columns =</span> <span class="fu">c</span>(off_success_rate, dropback_pct, def_success_rate_allowed),</span>
+<span id="cb5-25"><a href="#cb5-25" aria-hidden="true" tabindex="-1"></a>    <span class="at">decimals =</span> <span class="dv">1</span></span>
+<span id="cb5-26"><a href="#cb5-26" aria-hidden="true" tabindex="-1"></a>  ) <span class="sc">|&gt;</span></span>
+<span id="cb5-27"><a href="#cb5-27" aria-hidden="true" tabindex="-1"></a>  <span class="fu">data_color</span>(</span>
+<span id="cb5-28"><a href="#cb5-28" aria-hidden="true" tabindex="-1"></a>    <span class="at">columns =</span> off_epa_per_play,</span>
+<span id="cb5-29"><a href="#cb5-29" aria-hidden="true" tabindex="-1"></a>    <span class="at">palette =</span> <span class="fu">c</span>(<span class="st">"#f87171"</span>, <span class="st">"#ffffff"</span>, <span class="st">"#4ade80"</span>)</span>
+<span id="cb5-30"><a href="#cb5-30" aria-hidden="true" tabindex="-1"></a>  ) <span class="sc">|&gt;</span></span>
+<span id="cb5-31"><a href="#cb5-31" aria-hidden="true" tabindex="-1"></a>  <span class="fu">tab_source_note</span>(</span>
+<span id="cb5-32"><a href="#cb5-32" aria-hidden="true" tabindex="-1"></a>    <span class="at">source_note =</span> <span class="st">"Data Source: nflfastR | Scrimmage plays only (Weeks 1–4, 2025)"</span></span>
+<span id="cb5-33"><a href="#cb5-33" aria-hidden="true" tabindex="-1"></a>  )</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</details>
+<div class="cell-output-display">
+<div id="cozkaxwdgj" style="padding-left:0px;padding-right:0px;padding-top:10px;padding-bottom:10px;overflow-x:auto;overflow-y:auto;width:auto;height:auto;">
+<style>#cozkaxwdgj table {
+  font-family: system-ui, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji';
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+#cozkaxwdgj thead, #cozkaxwdgj tbody, #cozkaxwdgj tfoot, #cozkaxwdgj tr, #cozkaxwdgj td, #cozkaxwdgj th {
+  border-style: none;
+}
+
+#cozkaxwdgj p {
+  margin: 0;
+  padding: 0;
+}
+
+#cozkaxwdgj .gt_table {
+  display: table;
+  border-collapse: collapse;
+  line-height: normal;
+  margin-left: auto;
+  margin-right: auto;
+  color: #333333;
+  font-size: 16px;
+  font-weight: normal;
+  font-style: normal;
+  background-color: #FFFFFF;
+  width: auto;
+  border-top-style: solid;
+  border-top-width: 2px;
+  border-top-color: #A8A8A8;
+  border-right-style: none;
+  border-right-width: 2px;
+  border-right-color: #D3D3D3;
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #A8A8A8;
+  border-left-style: none;
+  border-left-width: 2px;
+  border-left-color: #D3D3D3;
+}
+
+#cozkaxwdgj .gt_caption {
+  padding-top: 4px;
+  padding-bottom: 4px;
+}
+
+#cozkaxwdgj .gt_title {
+  color: #333333;
+  font-size: 125%;
+  font-weight: initial;
+  padding-top: 4px;
+  padding-bottom: 4px;
+  padding-left: 5px;
+  padding-right: 5px;
+  border-bottom-color: #FFFFFF;
+  border-bottom-width: 0;
+}
+
+#cozkaxwdgj .gt_subtitle {
+  color: #333333;
+  font-size: 85%;
+  font-weight: initial;
+  padding-top: 3px;
+  padding-bottom: 5px;
+  padding-left: 5px;
+  padding-right: 5px;
+  border-top-color: #FFFFFF;
+  border-top-width: 0;
+}
+
+#cozkaxwdgj .gt_heading {
+  background-color: #FFFFFF;
+  text-align: center;
+  border-bottom-color: #FFFFFF;
+  border-left-style: none;
+  border-left-width: 1px;
+  border-left-color: #D3D3D3;
+  border-right-style: none;
+  border-right-width: 1px;
+  border-right-color: #D3D3D3;
+}
+
+#cozkaxwdgj .gt_bottom_border {
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+}
+
+#cozkaxwdgj .gt_col_headings {
+  border-top-style: solid;
+  border-top-width: 2px;
+  border-top-color: #D3D3D3;
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+  border-left-style: none;
+  border-left-width: 1px;
+  border-left-color: #D3D3D3;
+  border-right-style: none;
+  border-right-width: 1px;
+  border-right-color: #D3D3D3;
+}
+
+#cozkaxwdgj .gt_col_heading {
+  color: #333333;
+  background-color: #FFFFFF;
+  font-size: 100%;
+  font-weight: normal;
+  text-transform: inherit;
+  border-left-style: none;
+  border-left-width: 1px;
+  border-left-color: #D3D3D3;
+  border-right-style: none;
+  border-right-width: 1px;
+  border-right-color: #D3D3D3;
+  vertical-align: bottom;
+  padding-top: 5px;
+  padding-bottom: 6px;
+  padding-left: 5px;
+  padding-right: 5px;
+  overflow-x: hidden;
+}
+
+#cozkaxwdgj .gt_column_spanner_outer {
+  color: #333333;
+  background-color: #FFFFFF;
+  font-size: 100%;
+  font-weight: normal;
+  text-transform: inherit;
+  padding-top: 0;
+  padding-bottom: 0;
+  padding-left: 4px;
+  padding-right: 4px;
+}
+
+#cozkaxwdgj .gt_column_spanner_outer:first-child {
+  padding-left: 0;
+}
+
+#cozkaxwdgj .gt_column_spanner_outer:last-child {
+  padding-right: 0;
+}
+
+#cozkaxwdgj .gt_column_spanner {
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+  vertical-align: bottom;
+  padding-top: 5px;
+  padding-bottom: 5px;
+  overflow-x: hidden;
+  display: inline-block;
+  width: 100%;
+}
+
+#cozkaxwdgj .gt_spanner_row {
+  border-bottom-style: hidden;
+}
+
+#cozkaxwdgj .gt_group_heading {
+  padding-top: 8px;
+  padding-bottom: 8px;
+  padding-left: 5px;
+  padding-right: 5px;
+  color: #333333;
+  background-color: #FFFFFF;
+  font-size: 100%;
+  font-weight: initial;
+  text-transform: inherit;
+  border-top-style: solid;
+  border-top-width: 2px;
+  border-top-color: #D3D3D3;
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+  border-left-style: none;
+  border-left-width: 1px;
+  border-left-color: #D3D3D3;
+  border-right-style: none;
+  border-right-width: 1px;
+  border-right-color: #D3D3D3;
+  vertical-align: middle;
+  text-align: left;
+}
+
+#cozkaxwdgj .gt_empty_group_heading {
+  padding: 0.5px;
+  color: #333333;
+  background-color: #FFFFFF;
+  font-size: 100%;
+  font-weight: initial;
+  border-top-style: solid;
+  border-top-width: 2px;
+  border-top-color: #D3D3D3;
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+  vertical-align: middle;
+}
+
+#cozkaxwdgj .gt_from_md > :first-child {
+  margin-top: 0;
+}
+
+#cozkaxwdgj .gt_from_md > :last-child {
+  margin-bottom: 0;
+}
+
+#cozkaxwdgj .gt_row {
+  padding-top: 8px;
+  padding-bottom: 8px;
+  padding-left: 5px;
+  padding-right: 5px;
+  margin: 10px;
+  border-top-style: solid;
+  border-top-width: 1px;
+  border-top-color: #D3D3D3;
+  border-left-style: none;
+  border-left-width: 1px;
+  border-left-color: #D3D3D3;
+  border-right-style: none;
+  border-right-width: 1px;
+  border-right-color: #D3D3D3;
+  vertical-align: middle;
+  overflow-x: hidden;
+}
+
+#cozkaxwdgj .gt_stub {
+  color: #333333;
+  background-color: #FFFFFF;
+  font-size: 100%;
+  font-weight: initial;
+  text-transform: inherit;
+  border-right-style: solid;
+  border-right-width: 2px;
+  border-right-color: #D3D3D3;
+  padding-left: 5px;
+  padding-right: 5px;
+}
+
+#cozkaxwdgj .gt_stub_row_group {
+  color: #333333;
+  background-color: #FFFFFF;
+  font-size: 100%;
+  font-weight: initial;
+  text-transform: inherit;
+  border-right-style: solid;
+  border-right-width: 2px;
+  border-right-color: #D3D3D3;
+  padding-left: 5px;
+  padding-right: 5px;
+  vertical-align: top;
+}
+
+#cozkaxwdgj .gt_row_group_first td {
+  border-top-width: 2px;
+}
+
+#cozkaxwdgj .gt_row_group_first th {
+  border-top-width: 2px;
+}
+
+#cozkaxwdgj .gt_summary_row {
+  color: #333333;
+  background-color: #FFFFFF;
+  text-transform: inherit;
+  padding-top: 8px;
+  padding-bottom: 8px;
+  padding-left: 5px;
+  padding-right: 5px;
+}
+
+#cozkaxwdgj .gt_first_summary_row {
+  border-top-style: solid;
+  border-top-color: #D3D3D3;
+}
+
+#cozkaxwdgj .gt_first_summary_row.thick {
+  border-top-width: 2px;
+}
+
+#cozkaxwdgj .gt_last_summary_row {
+  padding-top: 8px;
+  padding-bottom: 8px;
+  padding-left: 5px;
+  padding-right: 5px;
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+}
+
+#cozkaxwdgj .gt_grand_summary_row {
+  color: #333333;
+  background-color: #FFFFFF;
+  text-transform: inherit;
+  padding-top: 8px;
+  padding-bottom: 8px;
+  padding-left: 5px;
+  padding-right: 5px;
+}
+
+#cozkaxwdgj .gt_first_grand_summary_row {
+  padding-top: 8px;
+  padding-bottom: 8px;
+  padding-left: 5px;
+  padding-right: 5px;
+  border-top-style: double;
+  border-top-width: 6px;
+  border-top-color: #D3D3D3;
+}
+
+#cozkaxwdgj .gt_last_grand_summary_row_top {
+  padding-top: 8px;
+  padding-bottom: 8px;
+  padding-left: 5px;
+  padding-right: 5px;
+  border-bottom-style: double;
+  border-bottom-width: 6px;
+  border-bottom-color: #D3D3D3;
+}
+
+#cozkaxwdgj .gt_striped {
+  background-color: rgba(128, 128, 128, 0.05);
+}
+
+#cozkaxwdgj .gt_table_body {
+  border-top-style: solid;
+  border-top-width: 2px;
+  border-top-color: #D3D3D3;
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+}
+
+#cozkaxwdgj .gt_footnotes {
+  color: #333333;
+  background-color: #FFFFFF;
+  border-bottom-style: none;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+  border-left-style: none;
+  border-left-width: 2px;
+  border-left-color: #D3D3D3;
+  border-right-style: none;
+  border-right-width: 2px;
+  border-right-color: #D3D3D3;
+}
+
+#cozkaxwdgj .gt_footnote {
+  margin: 0px;
+  font-size: 90%;
+  padding-top: 4px;
+  padding-bottom: 4px;
+  padding-left: 5px;
+  padding-right: 5px;
+}
+
+#cozkaxwdgj .gt_sourcenotes {
+  color: #333333;
+  background-color: #FFFFFF;
+  border-bottom-style: none;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+  border-left-style: none;
+  border-left-width: 2px;
+  border-left-color: #D3D3D3;
+  border-right-style: none;
+  border-right-width: 2px;
+  border-right-color: #D3D3D3;
+}
+
+#cozkaxwdgj .gt_sourcenote {
+  font-size: 90%;
+  padding-top: 4px;
+  padding-bottom: 4px;
+  padding-left: 5px;
+  padding-right: 5px;
+}
+
+#cozkaxwdgj .gt_left {
+  text-align: left;
+}
+
+#cozkaxwdgj .gt_center {
+  text-align: center;
+}
+
+#cozkaxwdgj .gt_right {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+#cozkaxwdgj .gt_font_normal {
+  font-weight: normal;
+}
+
+#cozkaxwdgj .gt_font_bold {
+  font-weight: bold;
+}
+
+#cozkaxwdgj .gt_font_italic {
+  font-style: italic;
+}
+
+#cozkaxwdgj .gt_super {
+  font-size: 65%;
+}
+
+#cozkaxwdgj .gt_footnote_marks {
+  font-size: 75%;
+  vertical-align: 0.4em;
+  position: initial;
+}
+
+#cozkaxwdgj .gt_asterisk {
+  font-size: 100%;
+  vertical-align: 0;
+}
+
+#cozkaxwdgj .gt_indent_1 {
+  text-indent: 5px;
+}
+
+#cozkaxwdgj .gt_indent_2 {
+  text-indent: 10px;
+}
+
+#cozkaxwdgj .gt_indent_3 {
+  text-indent: 15px;
+}
+
+#cozkaxwdgj .gt_indent_4 {
+  text-indent: 20px;
+}
+
+#cozkaxwdgj .gt_indent_5 {
+  text-indent: 25px;
+}
+
+#cozkaxwdgj .katex-display {
+  display: inline-flex !important;
+  margin-bottom: 0.75em !important;
+}
+
+#cozkaxwdgj div.Reactable > div.rt-table > div.rt-thead > div.rt-tr.rt-tr-group-header > div.rt-th-group:after {
+  height: 0px !important;
+}
+</style>
+
+<table class="gt_table caption-top table table-sm table-striped small" data-quarto-bootstrap="false">
+<thead>
+<tr class="gt_heading header">
+<td colspan="9" class="gt_heading gt_title gt_font_normal"><strong>NFL Team Performance Summary: 2025 (Weeks 1–4)</strong></td>
+</tr>
+<tr class="gt_heading even">
+<td colspan="9" class="gt_heading gt_subtitle gt_font_normal gt_bottom_border">Offensive and Defensive Efficiency Metrics Calculated via nflfastR</td>
+</tr>
+<tr class="gt_col_headings header">
+<th id="team" class="gt_col_heading gt_columns_bottom_border gt_left" data-quarto-table-cell-role="th" scope="col">Team</th>
+<th id="off_plays" class="gt_col_heading gt_columns_bottom_border gt_right" data-quarto-table-cell-role="th" scope="col">Off. Plays</th>
+<th id="off_epa_per_play" class="gt_col_heading gt_columns_bottom_border gt_right" data-quarto-table-cell-role="th" scope="col">Off EPA/Play</th>
+<th id="pass_epa" class="gt_col_heading gt_columns_bottom_border gt_right" data-quarto-table-cell-role="th" scope="col">Pass EPA</th>
+<th id="rush_epa" class="gt_col_heading gt_columns_bottom_border gt_right" data-quarto-table-cell-role="th" scope="col">Rush EPA</th>
+<th id="off_success_rate" class="gt_col_heading gt_columns_bottom_border gt_right" data-quarto-table-cell-role="th" scope="col">Off. Success Rate</th>
+<th id="dropback_pct" class="gt_col_heading gt_columns_bottom_border gt_right" data-quarto-table-cell-role="th" scope="col">Pass Rate</th>
+<th id="def_epa_allowed" class="gt_col_heading gt_columns_bottom_border gt_right" data-quarto-table-cell-role="th" scope="col">Def EPA/Play</th>
+<th id="def_success_rate_allowed" class="gt_col_heading gt_columns_bottom_border gt_right" data-quarto-table-cell-role="th" scope="col">Def. Success Rate</th>
+</tr>
+</thead>
+<tbody class="gt_table_body">
+<tr class="odd">
+<td class="gt_row gt_left" headers="team">BUF</td>
+<td class="gt_row gt_right" headers="off_plays">268</td>
+<td class="gt_row gt_right" headers="off_epa_per_play" style="background-color: #4ADE80; color: #000000">0.230</td>
+<td class="gt_row gt_right" headers="pass_epa">0.332</td>
+<td class="gt_row gt_right" headers="rush_epa">0.091</td>
+<td class="gt_row gt_right" headers="off_success_rate">48.9%</td>
+<td class="gt_row gt_right" headers="dropback_pct">57.5%</td>
+<td class="gt_row gt_right" headers="def_epa_allowed">0.012</td>
+<td class="gt_row gt_right" headers="def_success_rate_allowed">42.0%</td>
+</tr>
+<tr class="even">
+<td class="gt_row gt_left" headers="team">GB</td>
+<td class="gt_row gt_right" headers="off_plays">259</td>
+<td class="gt_row gt_right" headers="off_epa_per_play" style="background-color: #81E79E; color: #000000">0.175</td>
+<td class="gt_row gt_right" headers="pass_epa">0.333</td>
+<td class="gt_row gt_right" headers="rush_epa">−0.031</td>
+<td class="gt_row gt_right" headers="off_success_rate">48.3%</td>
+<td class="gt_row gt_right" headers="dropback_pct">56.4%</td>
+<td class="gt_row gt_right" headers="def_epa_allowed">0.009</td>
+<td class="gt_row gt_right" headers="def_success_rate_allowed">42.2%</td>
+</tr>
+<tr class="odd">
+<td class="gt_row gt_left" headers="team">IND</td>
+<td class="gt_row gt_right" headers="off_plays">258</td>
+<td class="gt_row gt_right" headers="off_epa_per_play" style="background-color: #93EAA9; color: #000000">0.153</td>
+<td class="gt_row gt_right" headers="pass_epa">0.239</td>
+<td class="gt_row gt_right" headers="rush_epa">0.045</td>
+<td class="gt_row gt_right" headers="off_success_rate">49.6%</td>
+<td class="gt_row gt_right" headers="dropback_pct">55.4%</td>
+<td class="gt_row gt_right" headers="def_epa_allowed">−0.024</td>
+<td class="gt_row gt_right" headers="def_success_rate_allowed">47.6%</td>
+</tr>
+<tr class="even">
+<td class="gt_row gt_left" headers="team">DAL</td>
+<td class="gt_row gt_right" headers="off_plays">292</td>
+<td class="gt_row gt_right" headers="off_epa_per_play" style="background-color: #98EBAD; color: #000000">0.146</td>
+<td class="gt_row gt_right" headers="pass_epa">0.206</td>
+<td class="gt_row gt_right" headers="rush_epa">0.026</td>
+<td class="gt_row gt_right" headers="off_success_rate">49.7%</td>
+<td class="gt_row gt_right" headers="dropback_pct">66.4%</td>
+<td class="gt_row gt_right" headers="def_epa_allowed">0.261</td>
+<td class="gt_row gt_right" headers="def_success_rate_allowed">50.6%</td>
+</tr>
+<tr class="odd">
+<td class="gt_row gt_left" headers="team">DET</td>
+<td class="gt_row gt_right" headers="off_plays">250</td>
+<td class="gt_row gt_right" headers="off_epa_per_play" style="background-color: #9BECAF; color: #000000">0.141</td>
+<td class="gt_row gt_right" headers="pass_epa">0.288</td>
+<td class="gt_row gt_right" headers="rush_epa">−0.028</td>
+<td class="gt_row gt_right" headers="off_success_rate">48.8%</td>
+<td class="gt_row gt_right" headers="dropback_pct">53.6%</td>
+<td class="gt_row gt_right" headers="def_epa_allowed">−0.075</td>
+<td class="gt_row gt_right" headers="def_success_rate_allowed">38.2%</td>
+</tr>
+<tr class="even">
+<td class="gt_row gt_left" headers="team">BAL</td>
+<td class="gt_row gt_right" headers="off_plays">215</td>
+<td class="gt_row gt_right" headers="off_epa_per_play" style="background-color: #A8EEB8; color: #000000">0.125</td>
+<td class="gt_row gt_right" headers="pass_epa">0.174</td>
+<td class="gt_row gt_right" headers="rush_epa">0.032</td>
+<td class="gt_row gt_right" headers="off_success_rate">45.6%</td>
+<td class="gt_row gt_right" headers="dropback_pct">65.6%</td>
+<td class="gt_row gt_right" headers="def_epa_allowed">0.138</td>
+<td class="gt_row gt_right" headers="def_success_rate_allowed">46.9%</td>
+</tr>
+<tr class="odd">
+<td class="gt_row gt_left" headers="team">KC</td>
+<td class="gt_row gt_right" headers="off_plays">260</td>
+<td class="gt_row gt_right" headers="off_epa_per_play" style="background-color: #ADEFBC; color: #000000">0.118</td>
+<td class="gt_row gt_right" headers="pass_epa">0.196</td>
+<td class="gt_row gt_right" headers="rush_epa">−0.051</td>
+<td class="gt_row gt_right" headers="off_success_rate">45.0%</td>
+<td class="gt_row gt_right" headers="dropback_pct">68.5%</td>
+<td class="gt_row gt_right" headers="def_epa_allowed">0.023</td>
+<td class="gt_row gt_right" headers="def_success_rate_allowed">46.2%</td>
+</tr>
+<tr class="even">
+<td class="gt_row gt_left" headers="team">WAS</td>
+<td class="gt_row gt_right" headers="off_plays">248</td>
+<td class="gt_row gt_right" headers="off_epa_per_play" style="background-color: #BCF3C8; color: #000000">0.096</td>
+<td class="gt_row gt_right" headers="pass_epa">0.101</td>
+<td class="gt_row gt_right" headers="rush_epa">0.089</td>
+<td class="gt_row gt_right" headers="off_success_rate">46.8%</td>
+<td class="gt_row gt_right" headers="dropback_pct">62.9%</td>
+<td class="gt_row gt_right" headers="def_epa_allowed">0.064</td>
+<td class="gt_row gt_right" headers="def_success_rate_allowed">43.1%</td>
+</tr>
+<tr class="odd">
+<td class="gt_row gt_left" headers="team">NE</td>
+<td class="gt_row gt_right" headers="off_plays">248</td>
+<td class="gt_row gt_right" headers="off_epa_per_play" style="background-color: #C3F4CD; color: #000000">0.086</td>
+<td class="gt_row gt_right" headers="pass_epa">0.301</td>
+<td class="gt_row gt_right" headers="rush_epa">−0.298</td>
+<td class="gt_row gt_right" headers="off_success_rate">44.8%</td>
+<td class="gt_row gt_right" headers="dropback_pct">64.1%</td>
+<td class="gt_row gt_right" headers="def_epa_allowed">0.051</td>
+<td class="gt_row gt_right" headers="def_success_rate_allowed">47.9%</td>
+</tr>
+<tr class="even">
+<td class="gt_row gt_left" headers="team">LA</td>
+<td class="gt_row gt_right" headers="off_plays">255</td>
+<td class="gt_row gt_right" headers="off_epa_per_play" style="background-color: #CEF6D6; color: #000000">0.070</td>
+<td class="gt_row gt_right" headers="pass_epa">0.150</td>
+<td class="gt_row gt_right" headers="rush_epa">−0.049</td>
+<td class="gt_row gt_right" headers="off_success_rate">48.6%</td>
+<td class="gt_row gt_right" headers="dropback_pct">60.0%</td>
+<td class="gt_row gt_right" headers="def_epa_allowed">−0.096</td>
+<td class="gt_row gt_right" headers="def_success_rate_allowed">40.4%</td>
+</tr>
+<tr class="odd">
+<td class="gt_row gt_left" headers="team">PIT</td>
+<td class="gt_row gt_right" headers="off_plays">219</td>
+<td class="gt_row gt_right" headers="off_epa_per_play" style="background-color: #D6F7DC; color: #000000">0.059</td>
+<td class="gt_row gt_right" headers="pass_epa">0.121</td>
+<td class="gt_row gt_right" headers="rush_epa">−0.031</td>
+<td class="gt_row gt_right" headers="off_success_rate">46.6%</td>
+<td class="gt_row gt_right" headers="dropback_pct">59.4%</td>
+<td class="gt_row gt_right" headers="def_epa_allowed">0.044</td>
+<td class="gt_row gt_right" headers="def_success_rate_allowed">46.0%</td>
+</tr>
+<tr class="even">
+<td class="gt_row gt_left" headers="team">DEN</td>
+<td class="gt_row gt_right" headers="off_plays">262</td>
+<td class="gt_row gt_right" headers="off_epa_per_play" style="background-color: #DDF9E3; color: #000000">0.048</td>
+<td class="gt_row gt_right" headers="pass_epa">0.106</td>
+<td class="gt_row gt_right" headers="rush_epa">−0.049</td>
+<td class="gt_row gt_right" headers="off_success_rate">42.0%</td>
+<td class="gt_row gt_right" headers="dropback_pct">62.2%</td>
+<td class="gt_row gt_right" headers="def_epa_allowed">−0.096</td>
+<td class="gt_row gt_right" headers="def_success_rate_allowed">38.7%</td>
+</tr>
+<tr class="odd">
+<td class="gt_row gt_left" headers="team">TB</td>
+<td class="gt_row gt_right" headers="off_plays">279</td>
+<td class="gt_row gt_right" headers="off_epa_per_play" style="background-color: #E3FAE7; color: #000000">0.039</td>
+<td class="gt_row gt_right" headers="pass_epa">0.163</td>
+<td class="gt_row gt_right" headers="rush_epa">−0.167</td>
+<td class="gt_row gt_right" headers="off_success_rate">41.6%</td>
+<td class="gt_row gt_right" headers="dropback_pct">62.4%</td>
+<td class="gt_row gt_right" headers="def_epa_allowed">−0.045</td>
+<td class="gt_row gt_right" headers="def_success_rate_allowed">43.5%</td>
+</tr>
+<tr class="even">
+<td class="gt_row gt_left" headers="team">SEA</td>
+<td class="gt_row gt_right" headers="off_plays">238</td>
+<td class="gt_row gt_right" headers="off_epa_per_play" style="background-color: #E6FBEA; color: #000000">0.035</td>
+<td class="gt_row gt_right" headers="pass_epa">0.237</td>
+<td class="gt_row gt_right" headers="rush_epa">−0.154</td>
+<td class="gt_row gt_right" headers="off_success_rate">45.0%</td>
+<td class="gt_row gt_right" headers="dropback_pct">48.3%</td>
+<td class="gt_row gt_right" headers="def_epa_allowed">−0.049</td>
+<td class="gt_row gt_right" headers="def_success_rate_allowed">42.0%</td>
+</tr>
+<tr class="odd">
+<td class="gt_row gt_left" headers="team">ARI</td>
+<td class="gt_row gt_right" headers="off_plays">253</td>
+<td class="gt_row gt_right" headers="off_epa_per_play" style="background-color: #E9FBEC; color: #000000">0.030</td>
+<td class="gt_row gt_right" headers="pass_epa">0.109</td>
+<td class="gt_row gt_right" headers="rush_epa">−0.131</td>
+<td class="gt_row gt_right" headers="off_success_rate">40.7%</td>
+<td class="gt_row gt_right" headers="dropback_pct">67.2%</td>
+<td class="gt_row gt_right" headers="def_epa_allowed">0.001</td>
+<td class="gt_row gt_right" headers="def_success_rate_allowed">46.2%</td>
+</tr>
+<tr class="even">
+<td class="gt_row gt_left" headers="team">JAX</td>
+<td class="gt_row gt_right" headers="off_plays">267</td>
+<td class="gt_row gt_right" headers="off_epa_per_play" style="background-color: #EAFBED; color: #000000">0.029</td>
+<td class="gt_row gt_right" headers="pass_epa">0.053</td>
+<td class="gt_row gt_right" headers="rush_epa">−0.007</td>
+<td class="gt_row gt_right" headers="off_success_rate">44.6%</td>
+<td class="gt_row gt_right" headers="dropback_pct">58.8%</td>
+<td class="gt_row gt_right" headers="def_epa_allowed">−0.099</td>
+<td class="gt_row gt_right" headers="def_success_rate_allowed">40.2%</td>
+</tr>
+<tr class="odd">
+<td class="gt_row gt_left" headers="team">PHI</td>
+<td class="gt_row gt_right" headers="off_plays">241</td>
+<td class="gt_row gt_right" headers="off_epa_per_play" style="background-color: #EAFBED; color: #000000">0.028</td>
+<td class="gt_row gt_right" headers="pass_epa">0.032</td>
+<td class="gt_row gt_right" headers="rush_epa">0.024</td>
+<td class="gt_row gt_right" headers="off_success_rate">44.4%</td>
+<td class="gt_row gt_right" headers="dropback_pct">53.9%</td>
+<td class="gt_row gt_right" headers="def_epa_allowed">−0.032</td>
+<td class="gt_row gt_right" headers="def_success_rate_allowed">44.0%</td>
+</tr>
+<tr class="even">
+<td class="gt_row gt_left" headers="team">LAC</td>
+<td class="gt_row gt_right" headers="off_plays">267</td>
+<td class="gt_row gt_right" headers="off_epa_per_play" style="background-color: #EAFBED; color: #000000">0.028</td>
+<td class="gt_row gt_right" headers="pass_epa">0.096</td>
+<td class="gt_row gt_right" headers="rush_epa">−0.118</td>
+<td class="gt_row gt_right" headers="off_success_rate">45.7%</td>
+<td class="gt_row gt_right" headers="dropback_pct">68.2%</td>
+<td class="gt_row gt_right" headers="def_epa_allowed">−0.100</td>
+<td class="gt_row gt_right" headers="def_success_rate_allowed">37.7%</td>
+</tr>
+<tr class="odd">
+<td class="gt_row gt_left" headers="team">SF</td>
+<td class="gt_row gt_right" headers="off_plays">270</td>
+<td class="gt_row gt_right" headers="off_epa_per_play" style="background-color: #EEFCF1; color: #000000">0.022</td>
+<td class="gt_row gt_right" headers="pass_epa">0.145</td>
+<td class="gt_row gt_right" headers="rush_epa">−0.197</td>
+<td class="gt_row gt_right" headers="off_success_rate">48.9%</td>
+<td class="gt_row gt_right" headers="dropback_pct">64.1%</td>
+<td class="gt_row gt_right" headers="def_epa_allowed">−0.021</td>
+<td class="gt_row gt_right" headers="def_success_rate_allowed">44.0%</td>
+</tr>
+<tr class="even">
+<td class="gt_row gt_left" headers="team">MIA</td>
+<td class="gt_row gt_right" headers="off_plays">223</td>
+<td class="gt_row gt_right" headers="off_epa_per_play" style="background-color: #F5FDF6; color: #000000">0.012</td>
+<td class="gt_row gt_right" headers="pass_epa">0.026</td>
+<td class="gt_row gt_right" headers="rush_epa">−0.014</td>
+<td class="gt_row gt_right" headers="off_success_rate">42.2%</td>
+<td class="gt_row gt_right" headers="dropback_pct">65.0%</td>
+<td class="gt_row gt_right" headers="def_epa_allowed">0.214</td>
+<td class="gt_row gt_right" headers="def_success_rate_allowed">53.0%</td>
+</tr>
+<tr class="odd">
+<td class="gt_row gt_left" headers="team">ATL</td>
+<td class="gt_row gt_right" headers="off_plays">268</td>
+<td class="gt_row gt_right" headers="off_epa_per_play" style="background-color: #FFFDFD; color: #000000">−0.006</td>
+<td class="gt_row gt_right" headers="pass_epa">0.044</td>
+<td class="gt_row gt_right" headers="rush_epa">−0.072</td>
+<td class="gt_row gt_right" headers="off_success_rate">44.4%</td>
+<td class="gt_row gt_right" headers="dropback_pct">56.3%</td>
+<td class="gt_row gt_right" headers="def_epa_allowed">−0.028</td>
+<td class="gt_row gt_right" headers="def_success_rate_allowed">44.2%</td>
+</tr>
+<tr class="even">
+<td class="gt_row gt_left" headers="team">NYJ</td>
+<td class="gt_row gt_right" headers="off_plays">241</td>
+<td class="gt_row gt_right" headers="off_epa_per_play" style="background-color: #FFFBFB; color: #000000">−0.010</td>
+<td class="gt_row gt_right" headers="pass_epa">0.061</td>
+<td class="gt_row gt_right" headers="rush_epa">−0.121</td>
+<td class="gt_row gt_right" headers="off_success_rate">48.1%</td>
+<td class="gt_row gt_right" headers="dropback_pct">61.0%</td>
+<td class="gt_row gt_right" headers="def_epa_allowed">0.130</td>
+<td class="gt_row gt_right" headers="def_success_rate_allowed">40.4%</td>
+</tr>
+<tr class="odd">
+<td class="gt_row gt_left" headers="team">NYG</td>
+<td class="gt_row gt_right" headers="off_plays">277</td>
+<td class="gt_row gt_right" headers="off_epa_per_play" style="background-color: #FFEEED; color: #000000">−0.032</td>
+<td class="gt_row gt_right" headers="pass_epa">0.009</td>
+<td class="gt_row gt_right" headers="rush_epa">−0.102</td>
+<td class="gt_row gt_right" headers="off_success_rate">42.2%</td>
+<td class="gt_row gt_right" headers="dropback_pct">62.5%</td>
+<td class="gt_row gt_right" headers="def_epa_allowed">0.104</td>
+<td class="gt_row gt_right" headers="def_success_rate_allowed">48.3%</td>
+</tr>
+<tr class="even">
+<td class="gt_row gt_left" headers="team">CHI</td>
+<td class="gt_row gt_right" headers="off_plays">259</td>
+<td class="gt_row gt_right" headers="off_epa_per_play" style="background-color: #FFEDEB; color: #000000">−0.035</td>
+<td class="gt_row gt_right" headers="pass_epa">0.089</td>
+<td class="gt_row gt_right" headers="rush_epa">−0.252</td>
+<td class="gt_row gt_right" headers="off_success_rate">40.5%</td>
+<td class="gt_row gt_right" headers="dropback_pct">63.7%</td>
+<td class="gt_row gt_right" headers="def_epa_allowed">0.032</td>
+<td class="gt_row gt_right" headers="def_success_rate_allowed">50.0%</td>
+</tr>
+<tr class="odd">
+<td class="gt_row gt_left" headers="team">CAR</td>
+<td class="gt_row gt_right" headers="off_plays">273</td>
+<td class="gt_row gt_right" headers="off_epa_per_play" style="background-color: #FFEAE9; color: #000000">−0.038</td>
+<td class="gt_row gt_right" headers="pass_epa">0.004</td>
+<td class="gt_row gt_right" headers="rush_epa">−0.118</td>
+<td class="gt_row gt_right" headers="off_success_rate">45.4%</td>
+<td class="gt_row gt_right" headers="dropback_pct">65.2%</td>
+<td class="gt_row gt_right" headers="def_epa_allowed">0.022</td>
+<td class="gt_row gt_right" headers="def_success_rate_allowed">41.5%</td>
+</tr>
+<tr class="even">
+<td class="gt_row gt_left" headers="team">NO</td>
+<td class="gt_row gt_right" headers="off_plays">284</td>
+<td class="gt_row gt_right" headers="off_epa_per_play" style="background-color: #FFD4D1; color: #000000">−0.076</td>
+<td class="gt_row gt_right" headers="pass_epa">−0.052</td>
+<td class="gt_row gt_right" headers="rush_epa">−0.116</td>
+<td class="gt_row gt_right" headers="off_success_rate">43.3%</td>
+<td class="gt_row gt_right" headers="dropback_pct">62.7%</td>
+<td class="gt_row gt_right" headers="def_epa_allowed">0.104</td>
+<td class="gt_row gt_right" headers="def_success_rate_allowed">45.7%</td>
+</tr>
+<tr class="odd">
+<td class="gt_row gt_left" headers="team">MIN</td>
+<td class="gt_row gt_right" headers="off_plays">238</td>
+<td class="gt_row gt_right" headers="off_epa_per_play" style="background-color: #FFD4D1; color: #000000">−0.076</td>
+<td class="gt_row gt_right" headers="pass_epa">−0.102</td>
+<td class="gt_row gt_right" headers="rush_epa">−0.033</td>
+<td class="gt_row gt_right" headers="off_success_rate">44.5%</td>
+<td class="gt_row gt_right" headers="dropback_pct">61.8%</td>
+<td class="gt_row gt_right" headers="def_epa_allowed">−0.142</td>
+<td class="gt_row gt_right" headers="def_success_rate_allowed">43.1%</td>
+</tr>
+<tr class="even">
+<td class="gt_row gt_left" headers="team">HOU</td>
+<td class="gt_row gt_right" headers="off_plays">243</td>
+<td class="gt_row gt_right" headers="off_epa_per_play" style="background-color: #FFD4D0; color: #000000">−0.076</td>
+<td class="gt_row gt_right" headers="pass_epa">−0.052</td>
+<td class="gt_row gt_right" headers="rush_epa">−0.116</td>
+<td class="gt_row gt_right" headers="off_success_rate">37.4%</td>
+<td class="gt_row gt_right" headers="dropback_pct">61.7%</td>
+<td class="gt_row gt_right" headers="def_epa_allowed">−0.072</td>
+<td class="gt_row gt_right" headers="def_success_rate_allowed">43.0%</td>
+</tr>
+<tr class="odd">
+<td class="gt_row gt_left" headers="team">LV</td>
+<td class="gt_row gt_right" headers="off_plays">248</td>
+<td class="gt_row gt_right" headers="off_epa_per_play" style="background-color: #FFC2BE; color: #000000">−0.107</td>
+<td class="gt_row gt_right" headers="pass_epa">−0.016</td>
+<td class="gt_row gt_right" headers="rush_epa">−0.244</td>
+<td class="gt_row gt_right" headers="off_success_rate">39.9%</td>
+<td class="gt_row gt_right" headers="dropback_pct">60.1%</td>
+<td class="gt_row gt_right" headers="def_epa_allowed">−0.007</td>
+<td class="gt_row gt_right" headers="def_success_rate_allowed">43.0%</td>
+</tr>
+<tr class="even">
+<td class="gt_row gt_left" headers="team">CLE</td>
+<td class="gt_row gt_right" headers="off_plays">280</td>
+<td class="gt_row gt_right" headers="off_epa_per_play" style="background-color: #FE8D8A; color: #000000">−0.193</td>
+<td class="gt_row gt_right" headers="pass_epa">−0.272</td>
+<td class="gt_row gt_right" headers="rush_epa">−0.026</td>
+<td class="gt_row gt_right" headers="off_success_rate">35.0%</td>
+<td class="gt_row gt_right" headers="dropback_pct">67.9%</td>
+<td class="gt_row gt_right" headers="def_epa_allowed">−0.042</td>
+<td class="gt_row gt_right" headers="def_success_rate_allowed">40.1%</td>
+</tr>
+<tr class="odd">
+<td class="gt_row gt_left" headers="team">CIN</td>
+<td class="gt_row gt_right" headers="off_plays">224</td>
+<td class="gt_row gt_right" headers="off_epa_per_play" style="background-color: #FA7A78; color: #FFFFFF">−0.224</td>
+<td class="gt_row gt_right" headers="pass_epa">−0.289</td>
+<td class="gt_row gt_right" headers="rush_epa">−0.098</td>
+<td class="gt_row gt_right" headers="off_success_rate">39.3%</td>
+<td class="gt_row gt_right" headers="dropback_pct">65.6%</td>
+<td class="gt_row gt_right" headers="def_epa_allowed">0.090</td>
+<td class="gt_row gt_right" headers="def_success_rate_allowed">47.4%</td>
+</tr>
+<tr class="even">
+<td class="gt_row gt_left" headers="team">TEN</td>
+<td class="gt_row gt_right" headers="off_plays">242</td>
+<td class="gt_row gt_right" headers="off_epa_per_play" style="background-color: #F87171; color: #FFFFFF">−0.237</td>
+<td class="gt_row gt_right" headers="pass_epa">−0.286</td>
+<td class="gt_row gt_right" headers="rush_epa">−0.137</td>
+<td class="gt_row gt_right" headers="off_success_rate">36.4%</td>
+<td class="gt_row gt_right" headers="dropback_pct">66.9%</td>
+<td class="gt_row gt_right" headers="def_epa_allowed">0.152</td>
+<td class="gt_row gt_right" headers="def_success_rate_allowed">45.7%</td>
+</tr>
+</tbody><tfoot>
+<tr class="gt_sourcenotes odd">
+<td colspan="9" class="gt_sourcenote">Data Source: nflfastR | Scrimmage plays only (Weeks 1–4, 2025)</td>
+</tr>
+</tfoot>
+
+</table>
+
+</div>
+</div>
+</div>
+<div class="cell">
+<details open="" class="code-fold">
+<summary>Show R Code</summary>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb6"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Compute tier averages for reference lines</span></span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a>avg_off_epa <span class="ot">&lt;-</span> <span class="fu">mean</span>(team_summary<span class="sc">$</span>off_epa_per_play, <span class="at">na.rm =</span> <span class="cn">TRUE</span>)</span>
+<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a>avg_def_epa <span class="ot">&lt;-</span> <span class="fu">mean</span>(team_summary<span class="sc">$</span>def_epa_allowed, <span class="at">na.rm =</span> <span class="cn">TRUE</span>)</span>
+<span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-5"><a href="#cb6-5" aria-hidden="true" tabindex="-1"></a><span class="fu">ggplot</span>(team_summary, <span class="fu">aes</span>(<span class="at">x =</span> off_epa_per_play, <span class="at">y =</span> def_epa_allowed)) <span class="sc">+</span></span>
+<span id="cb6-6"><a href="#cb6-6" aria-hidden="true" tabindex="-1"></a>  <span class="co"># Quadrant Mean Lines</span></span>
+<span id="cb6-7"><a href="#cb6-7" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_hline</span>(<span class="at">yintercept =</span> avg_def_epa, <span class="at">linetype =</span> <span class="st">"dashed"</span>, <span class="at">color =</span> <span class="st">"gray50"</span>, <span class="at">linewidth =</span> <span class="fl">0.6</span>) <span class="sc">+</span></span>
+<span id="cb6-8"><a href="#cb6-8" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_vline</span>(<span class="at">xintercept =</span> avg_off_epa, <span class="at">linetype =</span> <span class="st">"dashed"</span>, <span class="at">color =</span> <span class="st">"gray50"</span>, <span class="at">linewidth =</span> <span class="fl">0.6</span>) <span class="sc">+</span></span>
+<span id="cb6-9"><a href="#cb6-9" aria-hidden="true" tabindex="-1"></a>  <span class="co"># Official NFL Team Logos</span></span>
+<span id="cb6-10"><a href="#cb6-10" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_nfl_logos</span>(<span class="fu">aes</span>(<span class="at">team_abbr =</span> team), <span class="at">width =</span> <span class="fl">0.055</span>, <span class="at">alpha =</span> <span class="fl">0.9</span>) <span class="sc">+</span></span>
+<span id="cb6-11"><a href="#cb6-11" aria-hidden="true" tabindex="-1"></a>  <span class="co"># Invert Y-axis so lower EPA allowed (better defense) is higher up</span></span>
+<span id="cb6-12"><a href="#cb6-12" aria-hidden="true" tabindex="-1"></a>  <span class="fu">scale_y_reverse</span>() <span class="sc">+</span></span>
+<span id="cb6-13"><a href="#cb6-13" aria-hidden="true" tabindex="-1"></a>  <span class="fu">labs</span>(</span>
+<span id="cb6-14"><a href="#cb6-14" aria-hidden="true" tabindex="-1"></a>    <span class="at">title =</span> <span class="st">"2025 NFL Team Tier Breakdown (Weeks 1–4)"</span>,</span>
+<span id="cb6-15"><a href="#cb6-15" aria-hidden="true" tabindex="-1"></a>    <span class="at">subtitle =</span> <span class="st">"Offensive Efficiency vs. Defensive Efficiency"</span>,</span>
+<span id="cb6-16"><a href="#cb6-16" aria-hidden="true" tabindex="-1"></a>    <span class="at">x =</span> <span class="st">"Offensive EPA per Play (Higher = Better Offense)"</span>,</span>
+<span id="cb6-17"><a href="#cb6-17" aria-hidden="true" tabindex="-1"></a>    <span class="at">y =</span> <span class="st">"Defensive EPA per Play Allowed (Lower = Better Defense)"</span>,</span>
+<span id="cb6-18"><a href="#cb6-18" aria-hidden="true" tabindex="-1"></a>    <span class="at">caption =</span> <span class="st">"Chart: Senior Data Science | Data: nflfastR"</span></span>
+<span id="cb6-19"><a href="#cb6-19" aria-hidden="true" tabindex="-1"></a>  ) <span class="sc">+</span></span>
+<span id="cb6-20"><a href="#cb6-20" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme_minimal</span>(<span class="at">base_size =</span> <span class="dv">13</span>) <span class="sc">+</span></span>
+<span id="cb6-21"><a href="#cb6-21" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme</span>(</span>
+<span id="cb6-22"><a href="#cb6-22" aria-hidden="true" tabindex="-1"></a>    <span class="at">plot.title =</span> <span class="fu">element_text</span>(<span class="at">face =</span> <span class="st">"bold"</span>, <span class="at">size =</span> <span class="dv">16</span>, <span class="at">hjust =</span> <span class="fl">0.5</span>),</span>
+<span id="cb6-23"><a href="#cb6-23" aria-hidden="true" tabindex="-1"></a>    <span class="at">plot.subtitle =</span> <span class="fu">element_text</span>(<span class="at">color =</span> <span class="st">"gray30"</span>, <span class="at">hjust =</span> <span class="fl">0.5</span>),</span>
+<span id="cb6-24"><a href="#cb6-24" aria-hidden="true" tabindex="-1"></a>    <span class="at">panel.grid.minor =</span> <span class="fu">element_blank</span>()</span>
+<span id="cb6-25"><a href="#cb6-25" aria-hidden="true" tabindex="-1"></a>  )</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</details>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="Starting_nflfastr_files/figure-html/unnamed-chunk-5-1.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+</div>
+<section id="tasks" class="level3" data-number="2.1">
+<h3 data-number="2.1" class="anchored" data-anchor-id="tasks"><span class="header-section-number">2.1</span> Tasks</h3>
+<p>In sports analytics, plays occurring when the win probability is near 0% or 100% (“garbage time”) can skew team metrics. Modify the filtering logic to exclude plays where win probability (wp) &lt; 0.05 or wp &gt; 0.95. How does removing garbage time affect the top 3 offensive teams?</p>
+<div class="cell">
+<details open="" class="code-fold">
+<summary>Show R Code</summary>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb7"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Student Workspace: Filter out garbage time</span></span>
+<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a>pbp_filtered <span class="ot">&lt;-</span> pbp_w1_4 <span class="sc">|&gt;</span></span>
+<span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(wp <span class="sc">&gt;=</span> <span class="fl">0.05</span> <span class="sc">&amp;</span> wp <span class="sc">&lt;=</span> <span class="fl">0.95</span>)</span>
+<span id="cb7-4"><a href="#cb7-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb7-5"><a href="#cb7-5" aria-hidden="true" tabindex="-1"></a><span class="co"># </span><span class="al">TODO</span><span class="co">: Compute updated team summaries and compare results</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</details>
+</div>
+</section>
+<section id="instructor-tips-for-deployment" class="level3" data-number="2.2">
+<h3 data-number="2.2" class="anchored" data-anchor-id="instructor-tips-for-deployment"><span class="header-section-number">2.2</span> Instructor Tips for Deployment</h3>
+<ol type="1">
+<li><strong>Packages:</strong> Make sure students install <code>nflreadr</code> and <code>nflplotR</code> prior to running the lab. <code>nflreadr</code> handles the efficient data fetching underlying <code>nflfastR</code>.</li>
+<li><strong>Quarto Features:</strong> This document utilizes code-folding (<code>code-fold: show</code>), dynamic table styling with <code>gt</code>, and custom ggplot elements provided by <code>nflplotR</code>.</li>
+<li><strong>Data Availability:</strong> <code>nflfastR::load_pbp(2025)</code> fetches cleaned play-by-play data dynamically from <code>nflverse-data</code> releases via GitHub.</li>
+</ol>
+</section>
+</section>
+
+</main>
+<!-- /main column -->
+<script id="quarto-html-after-body" type="application/javascript">
+  window.document.addEventListener("DOMContentLoaded", function (event) {
+    const icon = "";
+    const anchorJS = new window.AnchorJS();
+    anchorJS.options = {
+      placement: 'right',
+      icon: icon
+    };
+    anchorJS.add('.anchored');
+    const isCodeAnnotation = (el) => {
+      for (const clz of el.classList) {
+        if (clz.startsWith('code-annotation-')) {                     
+          return true;
+        }
+      }
+      return false;
+    }
+    const onCopySuccess = function(e) {
+      // button target
+      const button = e.trigger;
+      // don't keep focus
+      button.blur();
+      // flash "checked"
+      button.classList.add('code-copy-button-checked');
+      var currentTitle = button.getAttribute("title");
+      button.setAttribute("title", "Copied!");
+      let tooltip;
+      if (window.bootstrap) {
+        button.setAttribute("data-bs-toggle", "tooltip");
+        button.setAttribute("data-bs-placement", "left");
+        button.setAttribute("data-bs-title", "Copied!");
+        tooltip = new bootstrap.Tooltip(button, 
+          { trigger: "manual", 
+            customClass: "code-copy-button-tooltip",
+            offset: [0, -8]});
+        tooltip.show();    
+      }
+      setTimeout(function() {
+        if (tooltip) {
+          tooltip.hide();
+          button.removeAttribute("data-bs-title");
+          button.removeAttribute("data-bs-toggle");
+          button.removeAttribute("data-bs-placement");
+        }
+        button.setAttribute("title", currentTitle);
+        button.classList.remove('code-copy-button-checked');
+      }, 1000);
+      // clear code selection
+      e.clearSelection();
+    }
+    const getTextToCopy = function(trigger) {
+      const outerScaffold = trigger.parentElement.cloneNode(true);
+      const codeEl = outerScaffold.querySelector('code');
+      for (const childEl of codeEl.children) {
+        if (isCodeAnnotation(childEl)) {
+          childEl.remove();
+        }
+      }
+      return codeEl.innerText;
+    }
+    const clipboard = new window.ClipboardJS('.code-copy-button:not([data-in-quarto-modal])', {
+      text: getTextToCopy
+    });
+    clipboard.on('success', onCopySuccess);
+    if (window.document.getElementById('quarto-embedded-source-code-modal')) {
+      const clipboardModal = new window.ClipboardJS('.code-copy-button[data-in-quarto-modal]', {
+        text: getTextToCopy,
+        container: window.document.getElementById('quarto-embedded-source-code-modal')
+      });
+      clipboardModal.on('success', onCopySuccess);
+    }
+      var localhostRegex = new RegExp(/^(?:http|https):\/\/localhost\:?[0-9]*\//);
+      var mailtoRegex = new RegExp(/^mailto:/);
+        var filterRegex = new RegExp('/' + window.location.host + '/');
+      var isInternal = (href) => {
+          return filterRegex.test(href) || localhostRegex.test(href) || mailtoRegex.test(href);
+      }
+      // Inspect non-navigation links and adorn them if external
+     var links = window.document.querySelectorAll('a[href]:not(.nav-link):not(.navbar-brand):not(.toc-action):not(.sidebar-link):not(.sidebar-item-toggle):not(.pagination-link):not(.no-external):not([aria-hidden]):not(.dropdown-item):not(.quarto-navigation-tool):not(.about-link)');
+      for (var i=0; i<links.length; i++) {
+        const link = links[i];
+        if (!isInternal(link.href)) {
+          // undo the damage that might have been done by quarto-nav.js in the case of
+          // links that we want to consider external
+          if (link.dataset.originalHref !== undefined) {
+            link.href = link.dataset.originalHref;
+          }
+        }
+      }
+    function tippyHover(el, contentFn, onTriggerFn, onUntriggerFn) {
+      const config = {
+        allowHTML: true,
+        maxWidth: 500,
+        delay: 100,
+        arrow: false,
+        appendTo: function(el) {
+            return el.parentElement;
+        },
+        interactive: true,
+        interactiveBorder: 10,
+        theme: 'quarto',
+        placement: 'bottom-start',
+      };
+      if (contentFn) {
+        config.content = contentFn;
+      }
+      if (onTriggerFn) {
+        config.onTrigger = onTriggerFn;
+      }
+      if (onUntriggerFn) {
+        config.onUntrigger = onUntriggerFn;
+      }
+      window.tippy(el, config); 
+    }
+    const noterefs = window.document.querySelectorAll('a[role="doc-noteref"]');
+    for (var i=0; i<noterefs.length; i++) {
+      const ref = noterefs[i];
+      tippyHover(ref, function() {
+        // use id or data attribute instead here
+        let href = ref.getAttribute('data-footnote-href') || ref.getAttribute('href');
+        try { href = new URL(href).hash; } catch {}
+        const id = href.replace(/^#\/?/, "");
+        const note = window.document.getElementById(id);
+        if (note) {
+          return note.innerHTML;
+        } else {
+          return "";
+        }
+      });
+    }
+    const xrefs = window.document.querySelectorAll('a.quarto-xref');
+    const processXRef = (id, note) => {
+      // Strip column container classes
+      const stripColumnClz = (el) => {
+        el.classList.remove("page-full", "page-columns");
+        if (el.children) {
+          for (const child of el.children) {
+            stripColumnClz(child);
+          }
+        }
+      }
+      stripColumnClz(note)
+      if (id === null || id.startsWith('sec-')) {
+        // Special case sections, only their first couple elements
+        const container = document.createElement("div");
+        if (note.children && note.children.length > 2) {
+          container.appendChild(note.children[0].cloneNode(true));
+          for (let i = 1; i < note.children.length; i++) {
+            const child = note.children[i];
+            if (child.tagName === "P" && child.innerText === "") {
+              continue;
+            } else {
+              container.appendChild(child.cloneNode(true));
+              break;
+            }
+          }
+          if (window.Quarto?.typesetMath) {
+            window.Quarto.typesetMath(container);
+          }
+          return container.innerHTML
+        } else {
+          if (window.Quarto?.typesetMath) {
+            window.Quarto.typesetMath(note);
+          }
+          return note.innerHTML;
+        }
+      } else {
+        // Remove any anchor links if they are present
+        const anchorLink = note.querySelector('a.anchorjs-link');
+        if (anchorLink) {
+          anchorLink.remove();
+        }
+        if (window.Quarto?.typesetMath) {
+          window.Quarto.typesetMath(note);
+        }
+        if (note.classList.contains("callout")) {
+          return note.outerHTML;
+        } else {
+          return note.innerHTML;
+        }
+      }
+    }
+    for (var i=0; i<xrefs.length; i++) {
+      const xref = xrefs[i];
+      tippyHover(xref, undefined, function(instance) {
+        instance.disable();
+        let url = xref.getAttribute('href');
+        let hash = undefined; 
+        if (url.startsWith('#')) {
+          hash = url;
+        } else {
+          try { hash = new URL(url).hash; } catch {}
+        }
+        if (hash) {
+          const id = hash.replace(/^#\/?/, "");
+          const note = window.document.getElementById(id);
+          if (note !== null) {
+            try {
+              const html = processXRef(id, note.cloneNode(true));
+              instance.setContent(html);
+            } finally {
+              instance.enable();
+              instance.show();
+            }
+          } else {
+            // See if we can fetch this
+            fetch(url.split('#')[0])
+            .then(res => res.text())
+            .then(html => {
+              const parser = new DOMParser();
+              const htmlDoc = parser.parseFromString(html, "text/html");
+              const note = htmlDoc.getElementById(id);
+              if (note !== null) {
+                const html = processXRef(id, note);
+                instance.setContent(html);
+              } 
+            }).finally(() => {
+              instance.enable();
+              instance.show();
+            });
+          }
+        } else {
+          // See if we can fetch a full url (with no hash to target)
+          // This is a special case and we should probably do some content thinning / targeting
+          fetch(url)
+          .then(res => res.text())
+          .then(html => {
+            const parser = new DOMParser();
+            const htmlDoc = parser.parseFromString(html, "text/html");
+            const note = htmlDoc.querySelector('main.content');
+            if (note !== null) {
+              // This should only happen for chapter cross references
+              // (since there is no id in the URL)
+              // remove the first header
+              if (note.children.length > 0 && note.children[0].tagName === "HEADER") {
+                note.children[0].remove();
+              }
+              const html = processXRef(null, note);
+              instance.setContent(html);
+            } 
+          }).finally(() => {
+            instance.enable();
+            instance.show();
+          });
+        }
+      }, function(instance) {
+      });
+    }
+        let selectedAnnoteEl;
+        const selectorForAnnotation = ( cell, annotation) => {
+          let cellAttr = 'data-code-cell="' + cell + '"';
+          let lineAttr = 'data-code-annotation="' +  annotation + '"';
+          const selector = 'span[' + cellAttr + '][' + lineAttr + ']';
+          return selector;
+        }
+        const selectCodeLines = (annoteEl) => {
+          const doc = window.document;
+          const targetCell = annoteEl.getAttribute("data-target-cell");
+          const targetAnnotation = annoteEl.getAttribute("data-target-annotation");
+          const annoteSpan = window.document.querySelector(selectorForAnnotation(targetCell, targetAnnotation));
+          const lines = annoteSpan.getAttribute("data-code-lines").split(",");
+          const lineIds = lines.map((line) => {
+            return targetCell + "-" + line;
+          })
+          let top = null;
+          let height = null;
+          let parent = null;
+          if (lineIds.length > 0) {
+              //compute the position of the single el (top and bottom and make a div)
+              const el = window.document.getElementById(lineIds[0]);
+              top = el.offsetTop;
+              height = el.offsetHeight;
+              parent = el.parentElement.parentElement;
+            if (lineIds.length > 1) {
+              const lastEl = window.document.getElementById(lineIds[lineIds.length - 1]);
+              const bottom = lastEl.offsetTop + lastEl.offsetHeight;
+              height = bottom - top;
+            }
+            if (top !== null && height !== null && parent !== null) {
+              // cook up a div (if necessary) and position it 
+              let div = window.document.getElementById("code-annotation-line-highlight");
+              if (div === null) {
+                div = window.document.createElement("div");
+                div.setAttribute("id", "code-annotation-line-highlight");
+                div.style.position = 'absolute';
+                parent.appendChild(div);
+              }
+              div.style.top = top - 2 + "px";
+              div.style.height = height + 4 + "px";
+              div.style.left = 0;
+              let gutterDiv = window.document.getElementById("code-annotation-line-highlight-gutter");
+              if (gutterDiv === null) {
+                gutterDiv = window.document.createElement("div");
+                gutterDiv.setAttribute("id", "code-annotation-line-highlight-gutter");
+                gutterDiv.style.position = 'absolute';
+                const codeCell = window.document.getElementById(targetCell);
+                const gutter = codeCell.querySelector('.code-annotation-gutter');
+                gutter.appendChild(gutterDiv);
+              }
+              gutterDiv.style.top = top - 2 + "px";
+              gutterDiv.style.height = height + 4 + "px";
+            }
+            selectedAnnoteEl = annoteEl;
+          }
+        };
+        const unselectCodeLines = () => {
+          const elementsIds = ["code-annotation-line-highlight", "code-annotation-line-highlight-gutter"];
+          elementsIds.forEach((elId) => {
+            const div = window.document.getElementById(elId);
+            if (div) {
+              div.remove();
+            }
+          });
+          selectedAnnoteEl = undefined;
+        };
+          // Handle positioning of the toggle
+      window.addEventListener(
+        "resize",
+        throttle(() => {
+          elRect = undefined;
+          if (selectedAnnoteEl) {
+            selectCodeLines(selectedAnnoteEl);
+          }
+        }, 10)
+      );
+      function throttle(fn, ms) {
+      let throttle = false;
+      let timer;
+        return (...args) => {
+          if(!throttle) { // first call gets through
+              fn.apply(this, args);
+              throttle = true;
+          } else { // all the others get throttled
+              if(timer) clearTimeout(timer); // cancel #2
+              timer = setTimeout(() => {
+                fn.apply(this, args);
+                timer = throttle = false;
+              }, ms);
+          }
+        };
+      }
+        // Attach click handler to the DT
+        const annoteDls = window.document.querySelectorAll('dt[data-target-cell]');
+        for (const annoteDlNode of annoteDls) {
+          annoteDlNode.addEventListener('click', (event) => {
+            const clickedEl = event.target;
+            if (clickedEl !== selectedAnnoteEl) {
+              unselectCodeLines();
+              const activeEl = window.document.querySelector('dt[data-target-cell].code-annotation-active');
+              if (activeEl) {
+                activeEl.classList.remove('code-annotation-active');
+              }
+              selectCodeLines(clickedEl);
+              clickedEl.classList.add('code-annotation-active');
+            } else {
+              // Unselect the line
+              unselectCodeLines();
+              clickedEl.classList.remove('code-annotation-active');
+            }
+          });
+        }
+    const findCites = (el) => {
+      const parentEl = el.parentElement;
+      if (parentEl) {
+        const cites = parentEl.dataset.cites;
+        if (cites) {
+          return {
+            el,
+            cites: cites.split(' ')
+          };
+        } else {
+          return findCites(el.parentElement)
+        }
+      } else {
+        return undefined;
+      }
+    };
+    var bibliorefs = window.document.querySelectorAll('a[role="doc-biblioref"]');
+    for (var i=0; i<bibliorefs.length; i++) {
+      const ref = bibliorefs[i];
+      const citeInfo = findCites(ref);
+      if (citeInfo) {
+        tippyHover(citeInfo.el, function() {
+          var popup = window.document.createElement('div');
+          citeInfo.cites.forEach(function(cite) {
+            var citeDiv = window.document.createElement('div');
+            citeDiv.classList.add('hanging-indent');
+            citeDiv.classList.add('csl-entry');
+            var biblioDiv = window.document.getElementById('ref-' + cite);
+            if (biblioDiv) {
+              citeDiv.innerHTML = biblioDiv.innerHTML;
+            }
+            popup.appendChild(citeDiv);
+          });
+          return popup.innerHTML;
+        });
+      }
+    }
+  });
+  </script>
+</div> <!-- /content -->
+
+
+
+
+</body></html>

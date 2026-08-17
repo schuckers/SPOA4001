@@ -10,306 +10,70 @@ execute:
 ---
 
 
-### Introduction to Repeatability
-
-Evaluating football performance requires distinguishing between true skill (signal) and random variance (noise).  A descriptive statistic tells us what happened in the past, but a predictive statistic tells us what is likely to happen in the future.  The gold standard for determining if a metric is predictive is repeatability. Eager and Erickson call this **stability** in their book and they define stability as _the metrics consistency over a pre-determined time frame_.
-
-If a player or team excels at a specific metric in Year 1, do they also excel at it in Year 2? We measure this using the Pearson correlation coefficient, represented formally as:
-
-$$r = \frac{\sum (x_i - \bar{x})(y_i - \bar{y})}{\sqrt{\sum (x_i - \bar{x})^2 \sum (y_i - \bar{y})^2}}.$$
-
-A correlation coefficient closer to 1.0 indicates a highly repeatable, "sticky" metric (pure skill). A coefficient near 0 indicates a non-repeatable, noisy metric (pure luck).
-
-### Repeatable vs. Non-Repeatable Metrics in the NFL
-
-Before we dive into the data, let's look at established research regarding metric repeatability in the NFL. Understanding which stats carry over from year to year is the foundation of player evaluation, roster construction, and sports betting. 
-
-+ Highly Repeatable Metrics (Signal)
-Usage and passing efficiency metrics tend to be the stickiest year-over-year.Target Share: Wide receivers who earn targets in one season consistently earn them in the next. 
-    + Target share has a year-over-year correlation of roughly 0.70.  
-    + EPA per Pass Attempt: Expected Points Added (EPA) measures a play's performance against historical expectations based on down, distance, and field position. For quarterbacks, EPA per passing attempt is one of the most stable efficiency metrics, with a correlation near 0.60.  
-    + Sack Avoidance: A quarterback's pressure-to-sack rate is a highly stable trait, showing a correlation around 0.50.
-+ Non-Repeatable Metrics (Noise)
-Metrics dependent on environment, bouncing balls, or small sample sizes are largely noise.Rushing EPA: Rushing statistics have incredibly low year-over-year correlations. 
-    + Rushing EPA per attempt has a virtually negligible correlation, heavily dependent on the offensive line and game script rather than the running back's isolated skill.  
-    + Fumble Recovery Rate: While fumbles happen on roughly 1% of run plays and 2% of pass plays, recovering a fumble is not a repeatable skill. Year-over-year correlation for fumble recoveries is practically zero, and long-term NFL data shows that fumble recoveries generally regress to a 50/50 coin flip.  
-    + Interception Rate: While throwing dangerous passes is a trait, the actual act of a defender catching the interception fluctuates wildly from year to year.
-
-### Task 1 The Stickiness of Passing vs. Rushing EPA
-
-Objective: Use the cfbfastR package to pull play-by-play data for two consecutive College Football (CFB) seasons. You will calculate the EPA per pass attempt for quarterbacks and the EPA per rush attempt for running backs, then test the year-over-year correlation for both.Instructions:Load CFB play-by-play data for the 2022 and 2023 seasons.Filter out garbage time plays (win probability outside of 20% to 80%).Group by passer and calculate total dropbacks and average EPA per pass attempt for both years.Group by rusher and calculate total rushes and average EPA per rush attempt for both years.Filter for players with a minimum of 150 attempts in both seasons.Create two scatter plots (Year 1 vs. Year 2) and calculate the $r^2$ value for both groups.Deliverable: Write a one-paragraph conclusion explaining why passing efficiency is more stable than rushing efficiency in college football, referencing the role of offensive lines and defensive schemes.
+## Environment Setup & Required Libraries
 
 ```{r}
-# Starter Code for Task 1
-library(cfbfastR)
+# Uncomment if packages are not yet installed:
+# install.packages(c("tidyverse", "nflfastR", "nflplotR", "gt", "knitr"))
 library(tidyverse)
+library(nflfastR)
+library(nflplotR)
+library(gt)
+library(knitr)
 
-# Load play-by-play data (Note: this takes a moment to download)
-pbp_22 <- cfbd_pbp_data(year = 2022, season_type = "regular", epa_wpa = TRUE)
-pbp_23 <- cfbd_pbp_data(year = 2023, season_type = "regular", epa_wpa = TRUE)
-
-# Combine datasets
-pbp_combined <- bind_rows(pbp_22, pbp_23)
-
-# Your turn: Filter, group, and calculate correlations!
+# Set global option to avoid scientific notation in printouts
+options(scipen = 999)
 ```
 
-+ Task 2 The Myth of Fumble Luck
-Objective: Sports broadcasters frequently praise defenses that recover a high number of fumbles, treating it as a distinct talent. Your job is to prove mathematically whether defensive fumble recovery rate in college football is a repeatable skill or random variance.
-
-Instructions:Using the cfbfastR play-by-play data, identify all plays where a fumble occurred.Determine which team recovered the fumble (Offense or Defense).Calculate the defensive fumble recovery percentage for every CFB team in 2022. (Defensive Recoveries / Total Fumbles Forced).Calculate the same metric for 2023.
-
-#### Data Preparation & Calculation
-
-Run the following code block to fetch the play-by-play data, group metrics by player and season, and calculate the year-over-year correlation coefficients (r).
-
 ```{r}
-library(nflreadr)
-library(tidyverse)
-library(patchwork)
+# 1. Fetch 2022 through 2025 regular season play-by-play data
+seasons_vector <- 2022:2025
+
+pbp_multi <- nflfastR::load_pbp(seasons_vector) |>
+  filter(
+    season_type == "REG",
+    !is.na(posteam),
+    play_type %in% c("pass", "run") | pass == 1 | rush == 1,
+    !is.na(epa)
+  )
+
+# Display dataset size across all 4 seasons
+cat("Total analyzed scrimmage plays (2022–2025):", nrow(pbp_multi), "\n")
 ```
 
-# 1. Load 2022 and 2023 play-by-play data
 ```{r}
-pbp <- load_pbp(2022:2023)
-```
-
-# 2. Calculate Passing EPA/play for Quarterbacks (Min. 200 attempts per season)
-```{r}
-qb_epa <- pbp %>%
-  filter(pass == 1, !is.na(epa), !is.na(passer_player_id)) %>%
-  group_by(season, passer_player_id, passer_player_name) %>%
+# 1. Weekly Offensive Metrics
+weekly_offense <- pbp_multi |>
+  group_by(season, week, posteam) |>
   summarize(
-    attempts = n(),
-    pass_epa_per_play = mean(epa),
+    off_plays = n(),
+    off_epa_per_play = mean(epa, na.rm = TRUE),
+    off_pass_epa = mean(epa[pass == 1], na.rm = TRUE),
+    off_rush_epa = mean(epa[rush == 1], na.rm = TRUE),
+    off_success_rate = mean(success, na.rm = TRUE),
+    pass_rate = mean(pass == 1, na.rm = TRUE),
     .groups = "drop"
-  ) %>%
-  filter(attempts >= 200) %>%
-  pivot_wider(
-    id_cols = c(passer_player_id, passer_player_name),
-    names_from = season,
-    names_prefix = "epa_",
-    values_from = pass_epa_per_play
-  ) %>%
-  drop_na()
-```
+  )
 
-# Calculate Pearson correlation for Quarterbacks
-```{r}
-r_pass <- cor(qb_epa$epa_2022, qb_epa$epa_2023)
-```
-
-# 3. Calculate Rushing EPA/play for Running Backs (Min. 100 attempts per season)
-```{r}
-rb_epa <- pbp %>%
-  filter(rush == 1, !is.na(epa), !is.na(rusher_player_id)) %>%
-  group_by(season, rusher_player_id, rusher_player_name) %>%
+# 2. Weekly Defensive Metrics
+weekly_defense <- pbp_multi |>
+  group_by(season, week, defteam) |>
   summarize(
-    carries = n(),
-    rush_epa_per_play = mean(epa),
+    def_plays = n(),
+    def_epa_allowed = mean(epa, na.rm = TRUE),
+    def_success_rate_allowed = mean(success, na.rm = TRUE),
     .groups = "drop"
-  ) %>%
-  filter(carries >= 100) %>%
-  pivot_wider(
-    id_cols = c(rusher_player_id, rusher_player_name),
-    names_from = season,
-    names_prefix = "epa_",
-    values_from = rush_epa_per_play
-  ) %>%
-  drop_na()
+  )
+
+# 3. Master Panel Dataset (Weekly Team Summary)
+weekly_team_panel <- weekly_offense |>
+  inner_join(
+    weekly_defense, 
+    by = c("season" = "season", "week" = "week", "posteam" = "defteam")
+  ) |>
+  rename(team = posteam) |>
+  arrange(team, season, week)
+
+# Preview first 10 rows of weekly panel data
+head(weekly_team_panel, 10) |> kable()
 ```
-
-# Calculate Pearson correlation for Running Backs
-```{r}
-r_rush <- cor(rb_epa$epa_2022, rb_epa$epa_2023)
-```
-
-2. Visualizing Signal vs. Noise
-
-Now we plot both metrics side-by-side to visually inspect how tightly points cluster around the trendline.
-R
-
-#| fig-width: 10
-#| fig-height: 5
-
-# Plot 1: QB Passing EPA
-```{r}
-p_pass <- ggplot(qb_epa, aes(x = epa_2022, y = epa_2023)) +
-  geom_point(color = "#013369", alpha = 0.7, size = 3) +
-  geom_smooth(method = "lm", se = FALSE, color = "#D50A0A", linetype = "dashed") +
-  labs(
-    title = "NFL QB Passing EPA/Play",
-    subtitle = paste0("2022 vs 2023 | r = ", round(r_pass, 2), " (High Signal)"),
-    x = "2022 Passing EPA / Play",
-    y = "2023 Passing EPA / Play"
-  ) +
-  theme_minimal()
-```
-
-# Plot 2: RB Rushing EPA
-```{r}
-p_rush <- ggplot(rb_epa, aes(x = epa_2022, y = epa_2023)) +
-  geom_point(color = "#D50A0A", alpha = 0.7, size = 3) +
-  geom_smooth(method = "lm", se = FALSE, color = "#013369", linetype = "dashed") +
-  labs(
-    title = "NFL RB Rushing EPA/Play",
-    subtitle = paste0("2022 vs 2023 | r = ", round(r_rush, 2), " (High Noise)"),
-    x = "2022 Rushing EPA / Play",
-    y = "2023 Rushing EPA / Play"
-  ) +
-  theme_minimal()
-```
-
-```{r}
-# Combine plots using patchwork
-p_pass + p_rush
-```
-
-
-    Takeaway: Passing efficiency is driven largely by quarterback skill and scheme, making it relatively repeatable year over year (r≈0.50−0.60). Rushing efficiency depends far more on defensive personnel, blocking, and box counts, resulting in weak year-over-year stability (r≈0.10−0.20).
-
-### Predictive Model Calibration
-Repeatability tells us if a metric is a stable skill. Calibration tells us if a predictive model is actually telling the truth. When a model predicts a quarterback has a 70% Expected Completion Percentage (xComp) on a specific pass, we want to know: Out of all the passes where the model predicted 70%, were exactly 70% of them caught? If only 50% were caught, the model is overconfident (poorly calibrated).We test this using a Calibration Plot (or Reliability Diagram). We group predictions into bins (e.g., 0-5%, 5-10%) and plot the Expected Rate against the Actual Rate. A perfectly calibrated model will hug the $y = x$ dashed line.Code Example: Calibrating NFL Completion Probability (cp)R#| fig-width: 8
-```{r}
-#| fig-height: 6
-
-# Create a calibration dataframe for the NFL Completion Probability (cp) model
-calib_data <- pbp %>%
-  filter(pass == 1, !is.na(cp), !is.na(complete_pass)) %>%
-  mutate(
-    # Round predictions to the nearest 5% bucket to create bins
-    cp_bin = round(cp / 0.05) * 0.05
-  ) %>%
-  group_by(cp_bin) %>%
-  summarize(
-    plays = n(),
-    expected_comp = mean(cp),
-    actual_comp = mean(complete_pass)
-  ) %>%
-  filter(plays >= 50) # Filter out extreme outliers with tiny sample sizes
-```
-
-```{r}
-# Plot the Reliability Diagram
-ggplot(calib_data, aes(x = expected_comp, y = actual_comp)) +
-  geom_point(aes(size = plays), color = "#013369", alpha = 0.8) +
-  # Add the line of perfect calibration (y = x)
-  geom_abline(slope = 1, intercept = 0, color = "#D50A0A", linetype = "dashed", size = 1) +
-  scale_x_continuous(labels = scales::percent) +
-  scale_y_continuous(labels = scales::percent) +
-  labs(
-    title = "Calibration Plot: NFL Expected Completion %",
-    subtitle = "Does the nflverse 'cp' model match reality?",
-    x = "Expected Completion % (Model Output)",
-    y = "Actual Completion % (Observed Result)",
-    size = "Sample Size"
-  ) +
-  theme_minimal()
-```
-
-
-
-### Tasks 
-+ 1. Passing vs. Rushing EPA in College Football
-
-Objective: Use the cfbfastR package to reproduce the passing vs. rushing repeatability analysis on College Football (CFB) data.
-
-Instructions:
-
-    Load CFB play-by-play data for the 2022 and 2023 seasons using cfbfastR::cfbd_pbp_data().
-
-    Filter out non-competitive plays (keep win probabilities between 20% and 80%).
-
-    Calculate passing EPA per attempt for passers with ≥150 pass attempts in both seasons.
-
-    Calculate rushing EPA per attempt for rushers with ≥100 rushing attempts in both seasons.
-
-    Create a side-by-side scatter plot comparing Year 1 vs. Year 2 for both metrics, including r values in the plot subtitles.
-
-    Deliverable: Submit your generated plot along with a one-paragraph reflection answering: Does college football show the same gap between passing and rushing repeatability as the NFL? Why or why not?
-
-R
-```{r}
-# Starter Code for Task 1
-library(cfbfastR)
-library(tidyverse)
-library(patchwork)
-```
-
-```{r}
-# Fetch CFB Play-by-Play Data
-pbp_22 <- cfbd_pbp_data(year = 2022, season_type = "regular", epa_wpa = TRUE)
-pbp_23 <- cfbd_pbp_data(year = 2023, season_type = "regular", epa_wpa = TRUE)
-
-cfb_pbp <- bind_rows(pbp_22, pbp_23)
-# Your code goes here: Filter, summarize, pivot wide, calculate r, and plot!
-```
-
-
-
-+ 2. Defensive Fumble Luck
-
-Objective: Media broadcasts often attribute a high number of recovered fumbles to "ball-hawking defense." Your goal is to evaluate whether defensive fumble recovery rate is a skill or pure variance.
-
-Instructions:
-
-    Filter cfb_pbp for all plays where a fumble occurred (fumble_vec == 1).
-
-    Identify whether the offensive or defensive team recovered the fumble.
-
-    Calculate the defensive fumble recovery percentage for every CFB defense in 2022:
-    Recovery Rate=Total Fumbles ForcedDefensive Recoveries​
-
-    Calculate the same metric for 2023.
-
-    Calculate the Pearson correlation coefficient (r) between 2022 and 2023 defensive fumble recovery rates.
-
-    Create a scatter plot visualizing Year 1 vs. Year 2 recovery rates with a trendline.
-
-    Deliverable: Include your plot and code. In 2–3 sentences, answer: If a college defense recovered 80% of opponent fumbles in 2022, what recovery percentage should we project for them in 2023 based on your findings?
-
-
-
-
-```{r}
-# Starter Code for Task 2
-
-fumbles <- cfb_pbp %>%
-  filter(fumble_vec == 1) %>%
-  select(year, offense_play, defense_play, fumble_vec, fumble_recovered_1_team)
-
-# Your code goes here: Group by defense, evaluate recovery rates, join seasons, and plot!
-```
-
-
-+ 3. Calibrating the CFB Win Probability Model
-
-Objective: The cfbfastR play-by-play data includes a home_wp column, representing the model's estimated Win Probability for the home team before the snap. Your task is to evaluate how well calibrated this model is during the 4th Quarter.
-
-Instructions:
-
-    Filter the cfb_pbp dataset to only include plays from the 4th quarter (period == 4).
-
-    Create a binary column home_win that equals 1 if the home team won the game, and 0 otherwise. (Hint: You can join the PBP data with game schedule data using cfbd_game_info(), or find the maximum score for the game).
-
-    Create 5% bins for the home_wp column.
-
-    Calculate the average home_wp and the actual home_win percentage for each bin.
-
-    Plot your results on a calibration plot with a y=x dashed line.
-
-    Deliverable: Your code and the generated calibration plot. Does the college football win probability model tend to be overconfident, underconfident, or perfectly calibrated in the 4th quarter?
-
-
-```{r}
-# Starter Code for Assignment 3
-games_22 <- cfbd_game_info(2022)
-games_23 <- cfbd_game_info(2023)
-games <- bind_rows(games_22, games_23) %>%
-  select(game_id, home_team, away_team, home_points, away_points) %>%
-  mutate(home_win = ifelse(home_points > away_points, 1, 0))
-
-# Your code goes here: Join 'games' to 'cfb_pbp', filter 4th quarter, bin WP, and plot!
-```
-
-

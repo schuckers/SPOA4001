@@ -1,0 +1,238 @@
+
+---
+title: "Introduction to NFL Data Analysis with `nflfastR`"
+subtitle: "SPOA 4001/ItCS 5010: American Football Analytics"
+author: "Schuckers"
+date: "2026-08-16"
+format:
+  html:
+    toc: true
+    toc-depth: 3
+    number-sections: true
+    code-fold: show
+    code-summary: "Show R Code"
+    theme: flatly
+    highlight-style: github
+execute:
+  warning: false
+  message: false
+---
+
+### Overview
+
+In advanced sports analytics, play-by-play data provides the granular foundation needed to evaluate team efficiency, player performance, and tactical decisions. In this lab, we utilize **`nflfastR`**, an R library that provides fast access to cleaned NFL play-by-play data embedded with advanced statistical metrics.
+
+
+```{r}
+library(reticulate)
+Sys.setenv(RETICULATE_PYTHON = "C:\\Users\\mschuck1\\AppData\\Local\\Programs\\Python\\Python313\\python.exe")
+
+```
+
+
+```{python}
+print("world")
+```
+
+
+### Environment Setup & Required Libraries
+
+Ensure you have the required packages installed before running this document:
+
+```{r}
+# Uncomment if packages are not yet installed:
+# install.packages(c("tidyverse", "nflfastR", "nflplotR", "gt", "knitr"))
+library(tidyverse)
+library(nflfastR)
+library(nflplotR)
+library(gt)
+library(knitr)
+
+# Set global option to avoid scientific notation in printouts
+options(scipen = 999)
+```
+
+## Starting with Play by Play (pbp) data
+
+In the interest of speed, I've only taken regular season data from the first 4 weeks of the 2025 season.  Actually, I've taken the full 2025 play by play and I've 
+```{r}
+# Fetch 2025 play-by-play data
+raw_pbp_2025 <- nflfastR::load_pbp(2025)
+
+# Filter for Weeks 1-4 regular season scrimmage plays
+pbp_w1_4 <- raw_pbp_2025 |>
+  filter(
+    season_type == "REG",
+    week <= 4,
+    !is.na(posteam),                  
+    # Ensure there is an offensive team
+    play_type %in% c("pass", "run") | pass == 1 | rush == 1,
+    !is.na(epa)                       # Retain valid EPA values
+  )
+
+# Inspect dataset dimensions
+cat("Dataset dimensions (rows x cols):", dim(pbp_w1_4), "\n")
+```
+What variables are available to us
+```{r}
+names(pbp_w1_4)
+```
+Only 370 features/variables per play.
+
+The next set of code aggregates all of the play by play data by team.  We get some variables based upon expected points added (EPA) per play.  We do this aggregation by offense and defense then join them back together.
+
+```{r}
+#Offensive Aggregation (posteam)
+offense_summary <- pbp_w1_4 |>
+  group_by(posteam) |>
+  summarize(
+    off_plays = n(),
+    off_epa_per_play = mean(epa, na.rm = TRUE),
+    pass_epa = mean(epa[pass == 1], na.rm = TRUE),
+    rush_epa = mean(epa[rush == 1], na.rm = TRUE),
+    off_success_rate = mean(success, na.rm = TRUE),
+    dropback_pct = mean(pass == 1, na.rm = TRUE),
+    .groups = "drop"
+  )
+
+# Defensive Aggregation (defteam)
+defense_summary <- pbp_w1_4 |>
+  group_by(defteam) |>
+  summarize(
+    def_plays = n(),
+    def_epa_allowed = mean(epa, na.rm = TRUE),
+    def_pass_epa_allowed = mean(epa[pass == 1], na.rm = TRUE),
+    def_rush_epa_allowed = mean(epa[rush == 1], na.rm = TRUE),
+    def_success_rate_allowed = mean(success, na.rm = TRUE),
+    .groups = "drop"
+  )
+
+# Join Offense & Defense into a single Master Team Summary
+team_summary <- offense_summary |>
+  inner_join(defense_summary, by = c("posteam" = "defteam")) |>
+  rename(team = posteam) |>
+  arrange(desc(off_epa_per_play)) 
+
+# Display top 5 teams by Offensive EPA
+head(team_summary, 5) |> kable()
+
+#Display top 6 teams by Defenseive EPA
+team_summary<- team_summary |>
+  arrange(def_epa_allowed)
+
+head(team_summary, 6) |> kable (digits=3)
+
+
+
+```
+From the data above, which was the third best team on offensive EPA/play from these data?
+
+Let's make a better table.  
+
+```{r}
+#reorder the data for the plot below
+team_summary<- team_summary |>
+  arrange(desc(off_epa_per_play))
+
+# create a pretty table with some coloring
+team_summary |>
+  gt() |>
+  tab_header(
+    title = md("**NFL Team Performance Summary: 2025 (Weeks 1–4)**"),
+    subtitle = "Offensive and Defensive Efficiency Metrics Calculated via nflfastR"
+  ) |>
+  cols_label(
+    team = "Team",
+    off_plays = "Off. Plays",
+    off_epa_per_play = "Off EPA/Play",
+    pass_epa = "Pass EPA",
+    rush_epa = "Rush EPA",
+    off_success_rate = "Off. Success Rate",
+    dropback_pct = "Pass Rate",
+    def_epa_allowed = "Def EPA/Play",
+    def_success_rate_allowed = "Def. Success Rate"
+  ) |>
+  cols_hide(columns = c(def_plays, def_pass_epa_allowed, def_rush_epa_allowed)) |>
+  fmt_number(
+    columns = c(off_epa_per_play, pass_epa, rush_epa, def_epa_allowed),
+    decimals = 3
+  ) |>
+  fmt_percent(
+    columns = c(off_success_rate, dropback_pct, def_success_rate_allowed),
+    decimals = 1
+  ) |>
+  data_color(
+    columns = off_epa_per_play,
+    palette = c("#f87171", "#ffffff", "#4ade80")
+  ) |>
+  tab_source_note(
+    source_note = "Data Source: nflfastR | Scrimmage plays only (Weeks 1–4, 2025)"
+  )
+```
+
+Let's visualize some of these data.
+
+```{r}
+# Compute tier averages for reference lines
+avg_off_epa <- mean(team_summary$off_epa_per_play, na.rm = TRUE)
+avg_def_epa <- mean(team_summary$def_epa_allowed, na.rm = TRUE)
+
+ggplot(team_summary, aes(x = off_epa_per_play, y = def_epa_allowed)) +
+  # Quadrant Mean Lines
+  geom_hline(yintercept = avg_def_epa, linetype = "dashed", color = "gray50", linewidth = 0.6) +
+  geom_vline(xintercept = avg_off_epa, linetype = "dashed", color = "gray50", linewidth = 0.6) +
+  # Official NFL Team Logos
+  geom_nfl_logos(aes(team_abbr = team), width = 0.055, alpha = 0.9) +
+  # Invert Y-axis so lower EPA allowed (better defense) is higher up
+  scale_y_reverse() +
+  labs(
+    title = "2025 NFL Team Tier Breakdown (Weeks 1–4)",
+    subtitle = "Offensive Efficiency vs. Defensive Efficiency",
+    x = "Offensive EPA per Play (Higher = Better Offense)",
+    y = "Defensive EPA per Play Allowed (Lower = Better Defense)",
+    caption = "Chart: Senior Data Science | Data: nflfastR"
+  ) +
+  theme_minimal(base_size = 13) +
+  theme(
+    plot.title = element_text(face = "bold", size = 16, hjust = 0.5),
+    plot.subtitle = element_text(color = "gray30", hjust = 0.5),
+    panel.grid.minor = element_blank()
+  )
+```
+Note that the plot above has an unusual y-axis.  Why is that?
+
+
+### Tasks
+
+In sports analytics, plays occurring when the win probability is near 0% or 100% ("garbage time") can skew team metrics.  Modify the filtering logic to exclude plays where win probability < 0.05 or  > 0.95. How does removing garbage time affect the top 3 offensive teams?
+
+#### Task 1
+```{r}
+# Student Workspace: Filter out garbage time
+
+
+# TODO: Compute updated team summaries and compare results
+
+```
+
+#### Task 2
+
+Is this the best definition of garbage time?  How might you define garbage time?
+
+
+
+
+## Weekly Data 
+Executive Overview & Learning Objectives
+
+Analyzing single-week snapshots introduces high sampling noise. Expanding analysis across multiple full seasons (2022–2025) allows us to measure week-to-week stability, evaluate intra-season variance, and track longitudinal offensive and defensive efficiency.
+
+### Key Objectives
+By the end of this lab, students will be able to:
+1. **Multi-Year Data Pipeline:** Efficiently import, cache, and clean multi-season play-by-play datasets using `nflfastR`.
+2. **Weekly Granular Aggregation:** Construct a panel dataset aggregated at the `(season, week, team)` level.
+3. **Time-Series Metric Engineering:** Calculate 3-week rolling averages for Expected Points Added ($\text{EPA}$) to smooth out single-game noise.
+4. **Evaluating Metric Autocorrelation:** Quantify the predictive stability of week-to-week efficiency using lag correlations.
+
+---
+
