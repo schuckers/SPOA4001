@@ -26,7 +26,7 @@ options(scipen = 999)
 ```
 
 ```{r}
-# 1. Fetch 2022 through 2025 regular season play-by-play data
+# Fetch 2022 through 2025 regular season play-by-play data
 seasons_vector <- 2022:2025
 
 pbp_multi <- nflfastR::load_pbp(seasons_vector) |>
@@ -42,7 +42,7 @@ cat("Total analyzed scrimmage plays (2022–2025):", nrow(pbp_multi), "\n")
 ```
 
 ```{r}
-# 1. Weekly Offensive Metrics
+# Weekly Offensive Metrics
 weekly_offense <- pbp_multi |>
   group_by(season, week, posteam) |>
   summarize(
@@ -56,7 +56,7 @@ weekly_offense <- pbp_multi |>
     .groups = "drop"
   )
 
-# 2. Weekly Defensive Metrics
+# Weekly Defensive Metrics
 weekly_defense <- pbp_multi |>
   group_by(season, week, defteam) |>
   summarize(
@@ -66,7 +66,7 @@ weekly_defense <- pbp_multi |>
     .groups = "drop"
   )
 
-# 3. Master Panel Dataset (Weekly Team Summary)
+# Master Panel Dataset (Weekly Team Summary)
 weekly_team_panel <- weekly_offense |>
   inner_join(
     weekly_defense, 
@@ -79,7 +79,7 @@ weekly_team_panel <- weekly_offense |>
 head(weekly_team_panel, 10) |> kable()
 ```
 
-
+Next we are going to break the data into half seasons at week 9
 ```{r}
 halfseason_team_panel <- weekly_team_panel %>%
   mutate(half_season  = if_else(week <= 9, "H1", "H2")) |>
@@ -101,19 +101,19 @@ halfseason_team_panel <- weekly_team_panel %>%
          
 ```
 #### Task 
-Explore these data and try to surmise which metrics are good.
+Explore these data and try to surmise which metrics are good ones.
 
 
 
 
-
+### Correlations within the 2025 season
 We'll start by doing 2025 season and doing some correlations.
 
 ```{r}
-# 1. Load 2025 NFL play-by-play data
+#  Load 2025 NFL play-by-play data
 pbp_raw <- nflfastR::load_pbp(2025)
 
-# 2. Filter to regular season scrimmage plays
+# Filter to regular season scrimmage plays
 pbp_clean <- pbp_raw %>%
   filter(
     season_type == "REG",
@@ -130,6 +130,7 @@ pbp_clean <- pbp_raw %>%
   )
 ```
 
+Turn the play by play data into some drive level data
 ```{r}
 # Drive-Level Metrics (drive_epa, turnovers_per_drive)
 drive_summary <- pbp_clean %>%
@@ -169,12 +170,14 @@ head(metrics_combined)
 
 
 ```{r}
-# Combine all 10 metrics
+# Combine all the metrics
 metrics_combined <- play_summary %>%
   left_join(drive_summary, by = c("posteam", "half_season"))
 
 head(metrics_combined)
 ```
+
+Reshape the data to get the correlations.
 ```{r}
 # Reshape data to wide format: metric_H1 vs metric_H2
 metrics_wide <- metrics_combined %>%
@@ -259,7 +262,7 @@ Repeat the analysis above for the 2022, 2023 and 2024 seasons individually.
 ```
 
 
-How much do the correlations change from year to year?
+How much do the correlations change from year to year?  Does it make sense to combine the data from multiple years and do those correlations?  Why or why not?
 
 
 
