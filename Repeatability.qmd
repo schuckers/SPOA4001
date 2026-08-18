@@ -1,6 +1,6 @@
 ---
-title: "Metric Repeatability and Signal vs. Noise"
-author: "Master's in Football Analytics"
+title: "Repeatability in the NFL"
+author: "Schuckers"
 format: 
   html:
     toc: true
@@ -52,6 +52,7 @@ weekly_offense <- pbp_multi |>
     off_rush_epa = mean(epa[rush == 1], na.rm = TRUE),
     off_success_rate = mean(success, na.rm = TRUE),
     pass_rate = mean(pass == 1, na.rm = TRUE),
+    complete_pass_pct=mean(complete_pass,na.rm=TRUE),
     .groups = "drop"
   )
 
@@ -77,3 +78,189 @@ weekly_team_panel <- weekly_offense |>
 # Preview first 10 rows of weekly panel data
 head(weekly_team_panel, 10) |> kable()
 ```
+
+
+```{r}
+halfseason_team_panel <- weekly_team_panel %>%
+  mutate(half_season  = if_else(week <= 9, "H1", "H2")) |>
+  group_by(season, team, half_season) |>
+  summarize(
+    mean_off_plays = mean(off_plays,na.rm=TRUE),
+    mean_off_epa_per_play = mean(off_epa_per_play, na.rm = TRUE),
+    mean_off_pass_epa = mean(off_pass_epa, na.rm = TRUE),
+    mean_off_rush_epa = mean(off_rush_epa, na.rm = TRUE),
+    mean_off_success_rate = mean(off_success_rate, na.rm = TRUE),
+    mean_pass_rate = mean(pass_rate, na.rm = TRUE),
+    mean_complete_pass_pct=mean(complete_pass_pct,na.rm=TRUE),
+    mean_def_plays = mean(def_plays,na.rm=TRUE),
+    mean_def_epa_allowed = mean(def_epa_allowed, na.rm = TRUE),
+    mean_def_success_rate_allowed = mean(def_success_rate_allowed, na.rm = TRUE)
+  )
+         
+         
+         
+```
+#### Task 
+Explore these data and try to surmise which metrics are good.
+
+
+
+
+
+We'll start by doing 2025 season and doing some correlations.
+
+```{r}
+# 1. Load 2025 NFL play-by-play data
+pbp_raw <- nflfastR::load_pbp(2025)
+
+# 2. Filter to regular season scrimmage plays
+pbp_clean <- pbp_raw %>%
+  filter(
+    season_type == "REG",
+    play == 1,
+    !is.na(epa),
+    !is.na(posteam),
+    play_type %in% c("pass", "run")
+  ) %>%
+  mutate(
+    # Create split-half indicator (Weeks 1-9 vs Weeks 10-18)
+    half_season  = if_else(week <= 9, "H1", "H2"),
+    is_explosive = if_else(yards_gained >= 15, 1, 0),
+    is_success   = if_else(epa > 0, 1, 0)
+  )
+```
+
+```{r}
+# Drive-Level Metrics (drive_epa, turnovers_per_drive)
+drive_summary <- pbp_clean %>%
+  group_by(game_id, drive, posteam, half_season) %>%
+  summarize(
+    drive_total_epa = sum(epa, na.rm = TRUE),
+    drive_turnovers = sum(interception == 1 | fumble_lost == 1, na.rm = TRUE),
+    .groups = "drop"
+  ) %>%
+  group_by(posteam, half_season) %>%
+  summarize(
+    drive_epa           = mean(drive_total_epa, na.rm = TRUE),
+    turnovers_per_drive = mean(drive_turnovers, na.rm = TRUE),
+    .groups = "drop"
+  )
+
+# Play-Level Metrics
+play_summary <- pbp_clean %>%
+  group_by(posteam, half_season) %>%
+  summarize(
+    mean_epa       = mean(epa, na.rm = TRUE),
+    success_rate   = mean(is_success, na.rm = TRUE),
+    pass_epa       = mean(epa[play_type == "pass"], na.rm = TRUE),
+    rush_epa       = mean(epa[play_type == "run"], na.rm = TRUE),
+    yards_per_play = mean(yards_gained, na.rm = TRUE),
+    completion_pct = mean(complete_pass[pass_attempt == 1], na.rm = TRUE),
+    .groups = "drop"
+  )
+
+# Combine metrics
+metrics_combined <- play_summary %>%
+  left_join(drive_summary, by = c("posteam", "half_season"))
+
+head(metrics_combined)
+```
+
+
+
+```{r}
+# Combine all 10 metrics
+metrics_combined <- play_summary %>%
+  left_join(drive_summary, by = c("posteam", "half_season"))
+
+head(metrics_combined)
+```
+```{r}
+# Reshape data to wide format: metric_H1 vs metric_H2
+metrics_wide <- metrics_combined %>%
+  pivot_wider(
+    names_from = half_season,
+    values_from = c(
+      mean_epa, success_rate, pass_epa, rush_epa,
+      yards_per_play, drive_epa, completion_pct, turnovers_per_drive
+    )
+  )
+
+metric_list <- c(
+  "mean_epa", "success_rate", "pass_epa", "rush_epa",
+  "yards_per_play", "drive_epa", "completion_pct", "turnovers_per_drive"
+)
+```
+
+```{r}
+# Compute Pearson r, p-value, and R-squared
+correlation_results <- tibble(
+  metric = metric_list,
+  r = map_dbl(metric_list, ~ {
+    col_h1 <- paste0(.x, "_H1")
+    col_h2 <- paste0(.x, "_H2")
+    cor(metrics_wide[[col_h1]], metrics_wide[[col_h2]], use = "complete.obs")
+  }),
+  p_value = map_dbl(metric_list, ~ {
+    col_h1 <- paste0(.x, "_H1")
+    col_h2 <- paste0(.x, "_H2")
+    cor.test(metrics_wide[[col_h1]], metrics_wide[[col_h2]])$p.value
+  }),
+  r_squared = r^2
+) %>%
+  arrange(desc(r))
+```
+
+
+```{r}
+# Render Summary Table
+correlation_results %>%
+  gt() %>%
+  tab_header(
+    title = "2025 NFL Offense Split-Half Reliability",
+    subtitle = "Pearson Correlation (r) between Weeks 1-9 (H1) and Weeks 10-18 (H2)"
+  ) %>%
+  cols_label(
+    metric = "Offensive Metric",
+    r = "Pearson r",
+    p_value = "p-value",
+    r_squared = "R²"
+  ) %>%
+  fmt_number(columns = c(r, p_value, r_squared), decimals = 3)
+```
+
+```{r}
+ggplot(correlation_results, aes(x = reorder(metric, r), y = r, fill = r)) +
+  geom_col(width = 0.65, show.legend = FALSE) +
+  geom_text(aes(label = sprintf("r = %.2f", r)), hjust = -0.15, size = 3.8) +
+  coord_flip() +
+  scale_y_continuous(limits = c(-0.2, 1.0), breaks = seq(-0.2, 1, 0.2)) +
+  scale_fill_viridis_c(option = "mako", begin = 0.3, end = 0.85) +
+  theme_minimal(base_size = 12) +
+  labs(
+    title = "Metric Persistence: H1 vs H2 (2025 NFL Season)",
+    x = "Offensive Metric",
+    y = "Split-Half Pearson Correlation (r)"
+  )
+  
+```
+
+
+### Tasks
+
+Repeat the analysis above for the 2022, 2023 and 2024 seasons individually.
+
+```{r}
+# Code goes here for 2022
+```
+
+```{r}
+
+```
+
+
+How much do the correlations change from year to year?
+
+
+
+

@@ -14,6 +14,7 @@ format:
     theme: flatly
     highlight-style: github
 execute:
+  output: false
   warning: false
   message: false
 ---
@@ -22,6 +23,7 @@ execute:
 
 In advanced sports analytics, play-by-play data provides the granular foundation needed to evaluate team efficiency, player performance, and tactical decisions. In this lab, we utilize **`nflfastR`**, an R library that provides fast access to cleaned NFL play-by-play data embedded with advanced statistical metrics.
 
+Slight digression to test some python usage in this Quarto markdown file.
 
 ```{r}
 library(reticulate)
@@ -78,6 +80,11 @@ What variables are available to us
 names(pbp_w1_4)
 ```
 Only 370 features/variables per play.
+
+Let's take a look at the first 6 rows of these data
+```{r}
+head(pbp_w1_4)
+```
 
 The next set of code aggregates all of the play by play data by team.  We get some variables based upon expected points added (EPA) per play.  We do this aggregation by offense and defense then join them back together.
 
@@ -202,11 +209,11 @@ ggplot(team_summary, aes(x = off_epa_per_play, y = def_epa_allowed)) +
 Note that the plot above has an unusual y-axis.  Why is that?
 
 
-### Tasks
+## Tasks
 
 In sports analytics, plays occurring when the win probability is near 0% or 100% ("garbage time") can skew team metrics.  Modify the filtering logic to exclude plays where win probability < 0.05 or  > 0.95. How does removing garbage time affect the top 3 offensive teams?
 
-#### Task 1
+### Task 1
 ```{r}
 # Student Workspace: Filter out garbage time
 
@@ -215,24 +222,332 @@ In sports analytics, plays occurring when the win probability is near 0% or 100%
 
 ```
 
-#### Task 2
+### Task 2
 
 Is this the best definition of garbage time?  How might you define garbage time?
 
 
 
 
-## Weekly Data 
-Executive Overview & Learning Objectives
+## Drive summary data 
 
-Analyzing single-week snapshots introduces high sampling noise. Expanding analysis across multiple full seasons (2022–2025) allows us to measure week-to-week stability, evaluate intra-season variance, and track longitudinal offensive and defensive efficiency.
 
-### Key Objectives
-By the end of this lab, students will be able to:
-1. **Multi-Year Data Pipeline:** Efficiently import, cache, and clean multi-season play-by-play datasets using `nflfastR`.
-2. **Weekly Granular Aggregation:** Construct a panel dataset aggregated at the `(season, week, team)` level.
-3. **Time-Series Metric Engineering:** Calculate 3-week rolling averages for Expected Points Added ($\text{EPA}$) to smooth out single-game noise.
-4. **Evaluating Metric Autocorrelation:** Quantify the predictive stability of week-to-week efficiency using lag correlations.
+So we are going back to the play by play data from 2025 and now we are going to 
+look at some drive summaries.  
+```{r}
+pbp_clean <- pbp_w1_4 %>%
+  filter(
+    !is.na(drive),
+    !is.na(epa),
+    play == 1,                       # Excludes non-play events / dead-ball fouls
+    play_type %in% c("run", "pass")  # Restricts to offensive play attempts
+  )
+```
 
----
+Next we group the data and since drives are numbered from the beginning of each game, we have to group by game and drive.
+
+
+```{r}
+drive_level_data <- pbp_clean %>%
+  group_by(game_id, drive, posteam, defteam) %>%
+  summarize(
+    drive_total_epa = sum(epa, na.rm = TRUE),
+    drive_mean_epa  = mean(epa, na.rm = TRUE),
+    play_count      = n(),
+    drive_result    = first(fixed_drive_result),
+    .groups = "drop"
+  )
+```
+
+Next take the drive level data and get some offensive and defensive summaries
+```{r}
+offense_drive_summary <- drive_level_data %>%
+  filter(!is.na(posteam)) %>%
+  group_by(posteam) %>%
+  summarize(
+    drives           = n(),
+    mean_drive_epa   = mean(drive_total_epa, na.rm = TRUE),
+    median_drive_epa = median(drive_total_epa, na.rm = TRUE),
+    total_off_epa    = sum(drive_total_epa, na.rm = TRUE),
+    avg_plays_per_dr = mean(play_count, na.rm = TRUE)
+  ) %>%
+  arrange(desc(mean_drive_epa))
+
+head(offense_drive_summary, 6) |> kable (digits=3)
+
+defense_drive_summary <- drive_level_data %>%
+  filter(!is.na(defteam)) %>%
+  group_by(defteam) %>%
+  summarize(
+    drives_def        = n(),
+    mean_epa_allowed  = mean(drive_total_epa, na.rm = TRUE),
+    median_epa_allow  = median(drive_total_epa, na.rm = TRUE),
+    total_def_epa     = sum(drive_total_epa, na.rm = TRUE),
+    avg_plays_allowed = mean(play_count, na.rm = TRUE)
+  ) %>%
+  arrange(mean_epa_allowed) # Lower/negative EPA allowed indicates higher defensive
+
+head(defense_drive_summary, 6) |> kable (digits=3)
+```
+### Task 3
+
+Find another metric, not EPA, and calculate the summaries (mean, median, sum) for each drive in the *raw_pbp_2025* dataset.  Then do it for only pass plays.  Which team was the best on your metric for all plays? for only pass plays?
+
+
+
+## College Football Data
+
+Below we do some practice with loading, summarizing and visualizing the college football data.
+
+Using `cfbfastr::load_cfb_pbp()` fetches pre-processed play-by-play data directly without requiring API key authentication. We aggregate play-level yardage to quantify offensive and defensive Yards Per Play (YPP) across the 2025 season.
+
+```{r}
+#| label: setup-and-load
+
+library(cfbfastR)
+library(ggrepel)
+
+# Load full 2024 play-by-play dataset
+pbp_2025 <- load_cfb_pbp(2025) |>
+   filter(home_team_division=="fbs" & away_team_division=="fbs")|>
+  filter(rush == 1 | pass == 1, !is.na(yards_gained)) 
+```
+
+Note pbp for all college is a big file and includes teams from FBS, FCS, D2 and D3.  We're only interested in FBS v FBS games today.
+
+Below we get the yards per play gained for offenses.  
+
+```{r}
+# Compute offensive YPP by team
+off_ypp <- pbp_2025 |>
+  group_by(team = offense_play, conference = offense_conference) |>
+  summarize(
+    off_plays = n(),
+    off_ypp = mean(yards_gained),
+    .groups = "drop"
+  ) |>
+  arrange(desc(off_ypp)) 
+
+# Lets look at who is `best` on this metric
+head(off_ypp,15)|>kable(digits=2)
+```
+
+Below we get the yards per play gained against defenses.  
+
+```{r}
+
+# Compute defensive YPP allowed by team
+def_ypp <- pbp_2025 |>
+  group_by(team = defense_play) |>
+  summarize(
+    def_plays = n(),
+    def_ypp = mean(yards_gained),
+    .groups = "drop"
+  )|>
+  arrange(def_ypp) 
+
+# Lets look at who is best
+head(def_ypp,15)|>kable(digits=2)
+
+```
+
+Below we join and classify the teams into tiers.  
+
+```{r}
+
+# Join metrics and classify into performance tiers
+all_ypp <- off_ypp |>
+  inner_join(def_ypp, by = "team") |>
+  mutate(
+    net_ypp = off_ypp - def_ypp,
+    tier = case_when(
+      off_ypp > mean(off_ypp) & def_ypp < mean(def_ypp) ~ "Elite",
+      off_ypp > mean(off_ypp) & def_ypp >= mean(def_ypp) ~ "High Offense / Low Defense",
+      off_ypp <= mean(off_ypp) & def_ypp < mean(def_ypp) ~ "Low Offense / High Defense",
+      TRUE ~ "Rebuilding"
+    )
+  ) |>
+  arrange(desc(net_ypp))
+```
+
+Print out the data in a nice format.
+
+```{r}
+
+# Render structured output table
+all_ypp |>
+  select(team, off_ypp, def_ypp, net_ypp, tier) |>
+  gt() |>
+  tab_header(
+    title = "2025 FBS Yards Per Play Summary",
+    subtitle = "Evaluated on all rushing and passing attempts"
+  ) |>
+  cols_label(
+    team = "Team",
+    off_ypp = "Offensive YPP",
+    def_ypp = "Defensive YPP",
+    net_ypp = "Net YPP Margin",
+    tier = "Performance Tier"
+  ) |>
+  fmt_number(columns = where(is.numeric), decimals = 2)
+```
+
+Now a slick visualization with 'repel' labels to make things readable.
+
+```{r}
+#| fig-width: 8
+#| fig-height: 6
+
+ggplot(all_ypp, aes(x = off_ypp, y = def_ypp)) +
+  geom_vline(xintercept = mean(all_ypp$off_ypp), linetype = "dashed", color = "gray50") +
+  geom_hline(yintercept = mean(all_ypp$def_ypp), linetype = "dashed", color = "gray50") +
+  geom_point(aes(color = tier), size = 3) +
+  geom_text_repel(aes(label = team), size = 3.5, max.overlaps = 15) +
+  scale_y_reverse() + 
+  scale_color_brewer(palette = "Set1") +
+  labs(
+    title = "2025 Team Yards Per Play Matrix",
+    subtitle = "Top-Right quadrant indicates above-average offensive and defensive performance",
+    x = "Offensive YPP (Higher is Better)",
+    y = "Defensive YPP Allowed (Lower is Better)",
+    color = "Tier",
+    caption = "Data: cfbfastr"
+  ) +
+  theme_minimal(base_size = 12) +
+  theme(
+    plot.title = element_text(face = "bold"),
+    legend.position = "bottom"
+  )
+```
+
+### Task 4
+
+Repeat the analysis above for another metric.  This time only include data from games where the score differential between the two teams was less than 21.
+
+```{r}
+
+
+```
+
+
+## Using your API key
+
+In the code below put your key within the quotes
+```{r echo=FALSE}
+Sys.setenv(CFBD_API_KEY = "")
+```
+
+```{r}
+# Verify API key availability
+if (Sys.getenv("CFBD_API_KEY") == "") {
+  stop("CFBD_API_KEY environment variable not detected.")
+}
+
+# Load live API endpoints: 2025 Team Talent Ratings & Game Results
+talent_raw <- cfbd_team_talent(year = 2025) |> rename("team"="school")
+games_raw  <- cfbd_game_info(year = 2025, season_type = "regular")
+```
+
+Get wins for each team in 2025
+
+```{r}
+
+
+# Calculate regular season wins per team
+home_wins <- games_raw |> 
+  filter(!is.na(home_points), home_points > away_points) |> 
+  count(team = home_team, name = "wins")
+
+away_wins <- games_raw |> 
+  filter(!is.na(away_points), away_points > home_points) |> 
+  count(team = away_team, name = "wins")
+
+total_wins <- bind_rows(home_wins, away_wins) |> 
+  group_by(team) |> 
+  summarize(wins = sum(wins), .groups = "drop")
+```
+
+
+
+```{r}
+# Clean talent scores, join wins, and extract regression residuals
+df_analytics <- talent_raw |> 
+  transmute(
+    team,
+    talent_score = as.numeric(talent)
+  ) |> 
+  inner_join(total_wins, by = "team") |> 
+  drop_na()
+```
+
+
+```{r}
+# Fit OLS model to derive expected wins and residual performance
+model <- lm(wins ~ talent_score, data = df_analytics)
+
+df_analytics <- df_analytics |> 
+  mutate(
+    expected_wins = predict(model),
+    win_residual  = wins - expected_wins,
+    efficiency   = if_else(win_residual >= 0, "Overperforming", "Underperforming")
+  ) |> 
+  arrange(desc(win_residual))
+
+# Tabulate top 5 overperforming teams relative to talent
+df_analytics |> 
+  slice_head(n = 5) |> 
+  gt() |> 
+  tab_header(
+    title = "Top 5 Talent Overperformers (2024)",
+    subtitle = "Teams exceeding expected win totals based on 247Sports Composite Talent"
+  ) |> 
+  cols_label(
+    team = "Team",
+    talent_score = "Talent Score",
+    wins = "Actual Wins",
+    expected_wins = "Expected Wins",
+    win_residual = "Win Surplus",
+    efficiency = "Status"
+  ) |> 
+  fmt_number(columns = c(talent_score, expected_wins, win_residual), decimals = 2)
+
+```
+
+
+Make a visualization of talent vs Wins with the regression line on the plot
+
+```{r}
+#| label: visualization
+#| fig-width: 9
+#| fig-height: 6
+
+ggplot(df_analytics, aes(x = talent_score, y = wins)) +
+  geom_smooth(method = "lm", se = TRUE, color = "black", fill = "gray80", linetype = "dashed") +
+  geom_point(aes(color = win_residual), size = 3.5, alpha = 0.85) +
+  geom_text_repel(
+    aes(label = team), 
+    size = 3, 
+    max.overlaps = 12,
+    box.padding = 0.3
+  ) +
+  scale_color_gradient2(
+    low = "#d73027", 
+    mid = "#ffffbf", 
+    high = "#1a9850", 
+    midpoint = 0,
+    name = "Win Surplus"
+  ) +
+  labs(
+    title = "2025 FBS Talent Composite vs. Regular Season Wins",
+    subtitle = "Dashed line indicates baseline OLS expected wins given roster talent",
+    x = "247Sports Team Talent Score",
+    y = "Actual Regular Season Wins",
+    caption = "Data fetched via live API: cfbfastr"
+  ) +
+  theme_minimal(base_size = 12) +
+  theme(
+    plot.title = element_text(face = "bold"),
+    panel.grid.minor = element_blank()
+  )
+```
 
