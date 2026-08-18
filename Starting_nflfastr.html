@@ -9,7 +9,7 @@
 <meta name="author" content="Schuckers">
 <meta name="dcterms.date" content="2026-08-16">
 
-<title>Introduction to NFL Play-by-Play Analysis with nflfastR</title>
+<title>Introduction to NFL Data Analysis with nflfastR</title>
 <style>
 /* Default styles provided by pandoc.
 ** See https://pandoc.org/MANUAL.html#variables-for-html for config info.
@@ -78,35 +78,6 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <link href="Starting_nflfastr_files/libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
 <link href="Starting_nflfastr_files/libs/bootstrap/bootstrap-f484210136fb8cef9943d2d2f897601a.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
 
-  <script src="https://cdnjs.cloudflare.com/polyfill/v3/polyfill.min.js?features=es6"></script>
-  <script defer="" src="https://cdn.jsdelivr.net/npm/mathjax@4/tex-chtml.js" type="text/javascript"></script>
-
-<script type="text/javascript">
-const typesetMath = (el) => {
-  if (window.MathJax) {
-    // MathJax Typeset
-    window.MathJax.typeset([el]);
-  } else if (window.katex) {
-    // KaTeX Render
-    var mathElements = el.getElementsByClassName("math");
-    var macros = [];
-    for (var i = 0; i < mathElements.length; i++) {
-      var texText = mathElements[i].firstChild;
-      if (mathElements[i].tagName == "SPAN" && texText && texText.data) {
-        window.katex.render(texText.data, mathElements[i], {
-          displayMode: mathElements[i].classList.contains('display'),
-          throwOnError: false,
-          macros: macros,
-          fleqn: false
-        });
-      }
-    }
-  }
-}
-window.Quarto = {
-  typesetMath
-};
-</script>
 
 </head>
 
@@ -118,15 +89,23 @@ window.Quarto = {
     <h2 id="toc-title">Table of contents</h2>
    
   <ul>
-  <li><a href="#executive-overview-learning-objectives" id="toc-executive-overview-learning-objectives" class="nav-link active" data-scroll-target="#executive-overview-learning-objectives"><span class="header-section-number">1</span> Executive Overview &amp; Learning Objectives</a>
+  <li><a href="#overview" id="toc-overview" class="nav-link active" data-scroll-target="#overview"><span class="header-section-number">0.1</span> Overview</a></li>
+  <li><a href="#environment-setup-required-libraries" id="toc-environment-setup-required-libraries" class="nav-link" data-scroll-target="#environment-setup-required-libraries"><span class="header-section-number">0.2</span> Environment Setup &amp; Required Libraries</a></li>
+  <li><a href="#starting-with-play-by-play-pbp-data" id="toc-starting-with-play-by-play-pbp-data" class="nav-link" data-scroll-target="#starting-with-play-by-play-pbp-data"><span class="header-section-number">1</span> Starting with Play by Play (pbp) data</a></li>
+  <li><a href="#tasks" id="toc-tasks" class="nav-link" data-scroll-target="#tasks"><span class="header-section-number">2</span> Tasks</a>
   <ul class="collapse">
-  <li><a href="#key-objectives" id="toc-key-objectives" class="nav-link" data-scroll-target="#key-objectives"><span class="header-section-number">1.1</span> Key Objectives</a></li>
+  <li><a href="#task-1" id="toc-task-1" class="nav-link" data-scroll-target="#task-1"><span class="header-section-number">2.1</span> Task 1</a></li>
+  <li><a href="#task-2" id="toc-task-2" class="nav-link" data-scroll-target="#task-2"><span class="header-section-number">2.2</span> Task 2</a></li>
   </ul></li>
-  <li><a href="#environment-setup-required-libraries" id="toc-environment-setup-required-libraries" class="nav-link" data-scroll-target="#environment-setup-required-libraries"><span class="header-section-number">2</span> Environment Setup &amp; Required Libraries</a>
+  <li><a href="#drive-summary-data" id="toc-drive-summary-data" class="nav-link" data-scroll-target="#drive-summary-data"><span class="header-section-number">3</span> Drive summary data</a>
   <ul class="collapse">
-  <li><a href="#tasks" id="toc-tasks" class="nav-link" data-scroll-target="#tasks"><span class="header-section-number">2.1</span> Tasks</a></li>
-  <li><a href="#instructor-tips-for-deployment" id="toc-instructor-tips-for-deployment" class="nav-link" data-scroll-target="#instructor-tips-for-deployment"><span class="header-section-number">2.2</span> Instructor Tips for Deployment</a></li>
+  <li><a href="#task-3" id="toc-task-3" class="nav-link" data-scroll-target="#task-3"><span class="header-section-number">3.1</span> Task 3</a></li>
   </ul></li>
+  <li><a href="#college-football-data" id="toc-college-football-data" class="nav-link" data-scroll-target="#college-football-data"><span class="header-section-number">4</span> College Football Data</a>
+  <ul class="collapse">
+  <li><a href="#task-4" id="toc-task-4" class="nav-link" data-scroll-target="#task-4"><span class="header-section-number">4.1</span> Task 4</a></li>
+  </ul></li>
+  <li><a href="#using-your-api-key" id="toc-using-your-api-key" class="nav-link" data-scroll-target="#using-your-api-key"><span class="header-section-number">5</span> Using your API key</a></li>
   </ul>
 </nav>
 </div>
@@ -134,7 +113,7 @@ window.Quarto = {
 
 <header id="title-block-header" class="quarto-title-block default">
 <div class="quarto-title">
-<h1 class="title">Introduction to NFL Play-by-Play Analysis with <code>nflfastR</code></h1>
+<h1 class="title">Introduction to NFL Data Analysis with <code>nflfastR</code></h1>
 <p class="subtitle lead">SPOA 4001/ItCS 5010: American Football Analytics</p>
 </div>
 
@@ -164,1131 +143,532 @@ window.Quarto = {
 </header>
 
 
-<section id="executive-overview-learning-objectives" class="level2" data-number="1">
-<h2 data-number="1" class="anchored" data-anchor-id="executive-overview-learning-objectives"><span class="header-section-number">1</span> Executive Overview &amp; Learning Objectives</h2>
+<section id="overview" class="level3" data-number="0.1">
+<h3 data-number="0.1" class="anchored" data-anchor-id="overview"><span class="header-section-number">0.1</span> Overview</h3>
 <p>In advanced sports analytics, play-by-play data provides the granular foundation needed to evaluate team efficiency, player performance, and tactical decisions. In this lab, we utilize <strong><code>nflfastR</code></strong>, an R library that provides fast access to cleaned NFL play-by-play data embedded with advanced statistical metrics.</p>
-<section id="key-objectives" class="level3" data-number="1.1">
-<h3 data-number="1.1" class="anchored" data-anchor-id="key-objectives"><span class="header-section-number">1.1</span> Key Objectives</h3>
-<p>By the end of this lab, students will be able to: 1. <strong>Acquire and Filter Play-by-Play Data:</strong> Download official play-by-play data for specific weeks and season types using <code>nflfastR</code>. 2. <strong>Understand Expected Points Added (EPA):</strong> Evaluate play-level efficiency using Expected Points Added (<span class="math inline">\(\text{EPA}\)</span>) and Success Rate. 3. <strong>Data Wrangling with <code>dplyr</code>:</strong> Aggregate non-trivial play-level metrics to team-level summaries for both offense and defense. 4. <strong>Publication-Quality Reporting:</strong> Generate dynamic tables with <code>gt</code> and custom visualizations using <code>nflplotR</code> and <code>ggplot2</code>.</p>
-<hr>
+<p>Slight digression to test some python usage in this Quarto markdown file.</p>
+<div class="cell">
+<details open="" class="code-fold">
+<summary>Show R Code</summary>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb1"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(reticulate)</span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="fu">Sys.setenv</span>(<span class="at">RETICULATE_PYTHON =</span> <span class="st">"C:</span><span class="sc">\\</span><span class="st">Users</span><span class="sc">\\</span><span class="st">mschuck1</span><span class="sc">\\</span><span class="st">AppData</span><span class="sc">\\</span><span class="st">Local</span><span class="sc">\\</span><span class="st">Programs</span><span class="sc">\\</span><span class="st">Python</span><span class="sc">\\</span><span class="st">Python313</span><span class="sc">\\</span><span class="st">python.exe"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</details>
+</div>
+<div class="cell">
+<details open="" class="code-fold">
+<summary>Show R Code</summary>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb2"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">"world"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</details>
+</div>
 </section>
-</section>
-<section id="environment-setup-required-libraries" class="level2" data-number="2">
-<h2 data-number="2" class="anchored" data-anchor-id="environment-setup-required-libraries"><span class="header-section-number">2</span> Environment Setup &amp; Required Libraries</h2>
+<section id="environment-setup-required-libraries" class="level3" data-number="0.2">
+<h3 data-number="0.2" class="anchored" data-anchor-id="environment-setup-required-libraries"><span class="header-section-number">0.2</span> Environment Setup &amp; Required Libraries</h3>
 <p>Ensure you have the required packages installed before running this document:</p>
 <div class="cell">
 <details open="" class="code-fold">
 <summary>Show R Code</summary>
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb1"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Uncomment if packages are not yet installed:</span></span>
-<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="co"># install.packages(c("tidyverse", "nflfastR", "nflplotR", "gt", "knitr"))</span></span>
-<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(tidyverse)</span>
-<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(nflfastR)</span>
-<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(nflplotR)</span>
-<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(gt)</span>
-<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(knitr)</span>
-<span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb1-9"><a href="#cb1-9" aria-hidden="true" tabindex="-1"></a><span class="co"># Set global option to avoid scientific notation in printouts</span></span>
-<span id="cb1-10"><a href="#cb1-10" aria-hidden="true" tabindex="-1"></a><span class="fu">options</span>(<span class="at">scipen =</span> <span class="dv">999</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
-</details>
-</div>
-<div class="cell">
-<details open="" class="code-fold">
-<summary>Show R Code</summary>
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb2"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="co"># 1. Fetch 2025 play-by-play data</span></span>
-<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a>raw_pbp_2025 <span class="ot">&lt;-</span> nflfastR<span class="sc">::</span><span class="fu">load_pbp</span>(<span class="dv">2025</span>)</span>
-<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a><span class="co"># 2. Filter for Weeks 1-4 regular season scrimmage plays</span></span>
-<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a>pbp_w1_4 <span class="ot">&lt;-</span> raw_pbp_2025 <span class="sc">|&gt;</span></span>
-<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(</span>
-<span id="cb2-7"><a href="#cb2-7" aria-hidden="true" tabindex="-1"></a>    season_type <span class="sc">==</span> <span class="st">"REG"</span>,</span>
-<span id="cb2-8"><a href="#cb2-8" aria-hidden="true" tabindex="-1"></a>    week <span class="sc">&lt;=</span> <span class="dv">4</span>,</span>
-<span id="cb2-9"><a href="#cb2-9" aria-hidden="true" tabindex="-1"></a>    <span class="sc">!</span><span class="fu">is.na</span>(posteam),                  <span class="co"># Ensure there is an offensive team</span></span>
-<span id="cb2-10"><a href="#cb2-10" aria-hidden="true" tabindex="-1"></a>    play_type <span class="sc">%in%</span> <span class="fu">c</span>(<span class="st">"pass"</span>, <span class="st">"run"</span>) <span class="sc">|</span> pass <span class="sc">==</span> <span class="dv">1</span> <span class="sc">|</span> rush <span class="sc">==</span> <span class="dv">1</span>,</span>
-<span id="cb2-11"><a href="#cb2-11" aria-hidden="true" tabindex="-1"></a>    <span class="sc">!</span><span class="fu">is.na</span>(epa)                       <span class="co"># Retain valid EPA values</span></span>
-<span id="cb2-12"><a href="#cb2-12" aria-hidden="true" tabindex="-1"></a>  )</span>
-<span id="cb2-13"><a href="#cb2-13" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb2-14"><a href="#cb2-14" aria-hidden="true" tabindex="-1"></a><span class="co"># Inspect dataset dimensions</span></span>
-<span id="cb2-15"><a href="#cb2-15" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span>(<span class="st">"Dataset dimensions (rows x cols):"</span>, <span class="fu">dim</span>(pbp_w1_4), <span class="st">"</span><span class="sc">\n</span><span class="st">"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
-</details>
-<div class="cell-output cell-output-stdout">
-<pre><code>Dataset dimensions (rows x cols): 8149 372 </code></pre>
-</div>
-</div>
-<div class="cell">
-<details open="" class="code-fold">
-<summary>Show R Code</summary>
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb4"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="co"># 1. Offensive Aggregation (posteam)</span></span>
-<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a>offense_summary <span class="ot">&lt;-</span> pbp_w1_4 <span class="sc">|&gt;</span></span>
-<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">group_by</span>(posteam) <span class="sc">|&gt;</span></span>
-<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">summarize</span>(</span>
-<span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a>    <span class="at">off_plays =</span> <span class="fu">n</span>(),</span>
-<span id="cb4-6"><a href="#cb4-6" aria-hidden="true" tabindex="-1"></a>    <span class="at">off_epa_per_play =</span> <span class="fu">mean</span>(epa, <span class="at">na.rm =</span> <span class="cn">TRUE</span>),</span>
-<span id="cb4-7"><a href="#cb4-7" aria-hidden="true" tabindex="-1"></a>    <span class="at">pass_epa =</span> <span class="fu">mean</span>(epa[pass <span class="sc">==</span> <span class="dv">1</span>], <span class="at">na.rm =</span> <span class="cn">TRUE</span>),</span>
-<span id="cb4-8"><a href="#cb4-8" aria-hidden="true" tabindex="-1"></a>    <span class="at">rush_epa =</span> <span class="fu">mean</span>(epa[rush <span class="sc">==</span> <span class="dv">1</span>], <span class="at">na.rm =</span> <span class="cn">TRUE</span>),</span>
-<span id="cb4-9"><a href="#cb4-9" aria-hidden="true" tabindex="-1"></a>    <span class="at">off_success_rate =</span> <span class="fu">mean</span>(success, <span class="at">na.rm =</span> <span class="cn">TRUE</span>),</span>
-<span id="cb4-10"><a href="#cb4-10" aria-hidden="true" tabindex="-1"></a>    <span class="at">dropback_pct =</span> <span class="fu">mean</span>(pass <span class="sc">==</span> <span class="dv">1</span>, <span class="at">na.rm =</span> <span class="cn">TRUE</span>),</span>
-<span id="cb4-11"><a href="#cb4-11" aria-hidden="true" tabindex="-1"></a>    <span class="at">.groups =</span> <span class="st">"drop"</span></span>
-<span id="cb4-12"><a href="#cb4-12" aria-hidden="true" tabindex="-1"></a>  )</span>
-<span id="cb4-13"><a href="#cb4-13" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb4-14"><a href="#cb4-14" aria-hidden="true" tabindex="-1"></a><span class="co"># 2. Defensive Aggregation (defteam)</span></span>
-<span id="cb4-15"><a href="#cb4-15" aria-hidden="true" tabindex="-1"></a>defense_summary <span class="ot">&lt;-</span> pbp_w1_4 <span class="sc">|&gt;</span></span>
-<span id="cb4-16"><a href="#cb4-16" aria-hidden="true" tabindex="-1"></a>  <span class="fu">group_by</span>(defteam) <span class="sc">|&gt;</span></span>
-<span id="cb4-17"><a href="#cb4-17" aria-hidden="true" tabindex="-1"></a>  <span class="fu">summarize</span>(</span>
-<span id="cb4-18"><a href="#cb4-18" aria-hidden="true" tabindex="-1"></a>    <span class="at">def_plays =</span> <span class="fu">n</span>(),</span>
-<span id="cb4-19"><a href="#cb4-19" aria-hidden="true" tabindex="-1"></a>    <span class="at">def_epa_allowed =</span> <span class="fu">mean</span>(epa, <span class="at">na.rm =</span> <span class="cn">TRUE</span>),</span>
-<span id="cb4-20"><a href="#cb4-20" aria-hidden="true" tabindex="-1"></a>    <span class="at">def_pass_epa_allowed =</span> <span class="fu">mean</span>(epa[pass <span class="sc">==</span> <span class="dv">1</span>], <span class="at">na.rm =</span> <span class="cn">TRUE</span>),</span>
-<span id="cb4-21"><a href="#cb4-21" aria-hidden="true" tabindex="-1"></a>    <span class="at">def_rush_epa_allowed =</span> <span class="fu">mean</span>(epa[rush <span class="sc">==</span> <span class="dv">1</span>], <span class="at">na.rm =</span> <span class="cn">TRUE</span>),</span>
-<span id="cb4-22"><a href="#cb4-22" aria-hidden="true" tabindex="-1"></a>    <span class="at">def_success_rate_allowed =</span> <span class="fu">mean</span>(success, <span class="at">na.rm =</span> <span class="cn">TRUE</span>),</span>
-<span id="cb4-23"><a href="#cb4-23" aria-hidden="true" tabindex="-1"></a>    <span class="at">.groups =</span> <span class="st">"drop"</span></span>
-<span id="cb4-24"><a href="#cb4-24" aria-hidden="true" tabindex="-1"></a>  )</span>
-<span id="cb4-25"><a href="#cb4-25" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb4-26"><a href="#cb4-26" aria-hidden="true" tabindex="-1"></a><span class="co"># 3. Join Offense &amp; Defense into a single Master Team Summary</span></span>
-<span id="cb4-27"><a href="#cb4-27" aria-hidden="true" tabindex="-1"></a>team_summary <span class="ot">&lt;-</span> offense_summary <span class="sc">|&gt;</span></span>
-<span id="cb4-28"><a href="#cb4-28" aria-hidden="true" tabindex="-1"></a>  <span class="fu">inner_join</span>(defense_summary, <span class="at">by =</span> <span class="fu">c</span>(<span class="st">"posteam"</span> <span class="ot">=</span> <span class="st">"defteam"</span>)) <span class="sc">|&gt;</span></span>
-<span id="cb4-29"><a href="#cb4-29" aria-hidden="true" tabindex="-1"></a>  <span class="fu">rename</span>(<span class="at">team =</span> posteam) <span class="sc">|&gt;</span></span>
-<span id="cb4-30"><a href="#cb4-30" aria-hidden="true" tabindex="-1"></a>  <span class="fu">arrange</span>(<span class="fu">desc</span>(off_epa_per_play))</span>
-<span id="cb4-31"><a href="#cb4-31" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb4-32"><a href="#cb4-32" aria-hidden="true" tabindex="-1"></a><span class="co"># Display top 5 teams by Offensive EPA</span></span>
-<span id="cb4-33"><a href="#cb4-33" aria-hidden="true" tabindex="-1"></a><span class="fu">head</span>(team_summary, <span class="dv">5</span>) <span class="sc">|&gt;</span> <span class="fu">kable</span>()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
-</details>
-<div class="cell-output-display">
-<table class="caption-top table table-sm table-striped small">
-<colgroup>
-<col style="width: 2%">
-<col style="width: 5%">
-<col style="width: 9%">
-<col style="width: 5%">
-<col style="width: 6%">
-<col style="width: 9%">
-<col style="width: 7%">
-<col style="width: 5%">
-<col style="width: 9%">
-<col style="width: 11%">
-<col style="width: 11%">
-<col style="width: 14%">
-</colgroup>
-<thead>
-<tr class="header">
-<th style="text-align: left;">team</th>
-<th style="text-align: right;">off_plays</th>
-<th style="text-align: right;">off_epa_per_play</th>
-<th style="text-align: right;">pass_epa</th>
-<th style="text-align: right;">rush_epa</th>
-<th style="text-align: right;">off_success_rate</th>
-<th style="text-align: right;">dropback_pct</th>
-<th style="text-align: right;">def_plays</th>
-<th style="text-align: right;">def_epa_allowed</th>
-<th style="text-align: right;">def_pass_epa_allowed</th>
-<th style="text-align: right;">def_rush_epa_allowed</th>
-<th style="text-align: right;">def_success_rate_allowed</th>
-</tr>
-</thead>
-<tbody>
-<tr class="odd">
-<td style="text-align: left;">BUF</td>
-<td style="text-align: right;">268</td>
-<td style="text-align: right;">0.2295010</td>
-<td style="text-align: right;">0.3319893</td>
-<td style="text-align: right;">0.0910520</td>
-<td style="text-align: right;">0.4888060</td>
-<td style="text-align: right;">0.5746269</td>
-<td style="text-align: right;">226</td>
-<td style="text-align: right;">0.0116128</td>
-<td style="text-align: right;">-0.0233997</td>
-<td style="text-align: right;">0.0557285</td>
-<td style="text-align: right;">0.4203540</td>
-</tr>
-<tr class="even">
-<td style="text-align: left;">GB</td>
-<td style="text-align: right;">259</td>
-<td style="text-align: right;">0.1745451</td>
-<td style="text-align: right;">0.3333542</td>
-<td style="text-align: right;">-0.0306420</td>
-<td style="text-align: right;">0.4826255</td>
-<td style="text-align: right;">0.5637066</td>
-<td style="text-align: right;">268</td>
-<td style="text-align: right;">0.0093500</td>
-<td style="text-align: right;">0.0521050</td>
-<td style="text-align: right;">-0.0876309</td>
-<td style="text-align: right;">0.4216418</td>
-</tr>
-<tr class="odd">
-<td style="text-align: left;">IND</td>
-<td style="text-align: right;">258</td>
-<td style="text-align: right;">0.1526518</td>
-<td style="text-align: right;">0.2391547</td>
-<td style="text-align: right;">0.0450875</td>
-<td style="text-align: right;">0.4961240</td>
-<td style="text-align: right;">0.5542636</td>
-<td style="text-align: right;">248</td>
-<td style="text-align: right;">-0.0238408</td>
-<td style="text-align: right;">0.0105811</td>
-<td style="text-align: right;">-0.1002843</td>
-<td style="text-align: right;">0.4758065</td>
-</tr>
-<tr class="even">
-<td style="text-align: left;">DAL</td>
-<td style="text-align: right;">292</td>
-<td style="text-align: right;">0.1460041</td>
-<td style="text-align: right;">0.2064610</td>
-<td style="text-align: right;">0.0263242</td>
-<td style="text-align: right;">0.4965753</td>
-<td style="text-align: right;">0.6643836</td>
-<td style="text-align: right;">265</td>
-<td style="text-align: right;">0.2613647</td>
-<td style="text-align: right;">0.4419810</td>
-<td style="text-align: right;">-0.0138603</td>
-<td style="text-align: right;">0.5056604</td>
-</tr>
-<tr class="odd">
-<td style="text-align: left;">DET</td>
-<td style="text-align: right;">250</td>
-<td style="text-align: right;">0.1414695</td>
-<td style="text-align: right;">0.2882702</td>
-<td style="text-align: right;">-0.0281105</td>
-<td style="text-align: right;">0.4880000</td>
-<td style="text-align: right;">0.5360000</td>
-<td style="text-align: right;">238</td>
-<td style="text-align: right;">-0.0751622</td>
-<td style="text-align: right;">0.0160272</td>
-<td style="text-align: right;">-0.2278276</td>
-<td style="text-align: right;">0.3823529</td>
-</tr>
-</tbody>
-</table>
-</div>
-</div>
-<div class="cell">
-<details open="" class="code-fold">
-<summary>Show R Code</summary>
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb5"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a>team_summary <span class="sc">|&gt;</span></span>
-<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">gt</span>() <span class="sc">|&gt;</span></span>
-<span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">tab_header</span>(</span>
-<span id="cb5-4"><a href="#cb5-4" aria-hidden="true" tabindex="-1"></a>    <span class="at">title =</span> <span class="fu">md</span>(<span class="st">"**NFL Team Performance Summary: 2025 (Weeks 1–4)**"</span>),</span>
-<span id="cb5-5"><a href="#cb5-5" aria-hidden="true" tabindex="-1"></a>    <span class="at">subtitle =</span> <span class="st">"Offensive and Defensive Efficiency Metrics Calculated via nflfastR"</span></span>
-<span id="cb5-6"><a href="#cb5-6" aria-hidden="true" tabindex="-1"></a>  ) <span class="sc">|&gt;</span></span>
-<span id="cb5-7"><a href="#cb5-7" aria-hidden="true" tabindex="-1"></a>  <span class="fu">cols_label</span>(</span>
-<span id="cb5-8"><a href="#cb5-8" aria-hidden="true" tabindex="-1"></a>    <span class="at">team =</span> <span class="st">"Team"</span>,</span>
-<span id="cb5-9"><a href="#cb5-9" aria-hidden="true" tabindex="-1"></a>    <span class="at">off_plays =</span> <span class="st">"Off. Plays"</span>,</span>
-<span id="cb5-10"><a href="#cb5-10" aria-hidden="true" tabindex="-1"></a>    <span class="at">off_epa_per_play =</span> <span class="st">"Off EPA/Play"</span>,</span>
-<span id="cb5-11"><a href="#cb5-11" aria-hidden="true" tabindex="-1"></a>    <span class="at">pass_epa =</span> <span class="st">"Pass EPA"</span>,</span>
-<span id="cb5-12"><a href="#cb5-12" aria-hidden="true" tabindex="-1"></a>    <span class="at">rush_epa =</span> <span class="st">"Rush EPA"</span>,</span>
-<span id="cb5-13"><a href="#cb5-13" aria-hidden="true" tabindex="-1"></a>    <span class="at">off_success_rate =</span> <span class="st">"Off. Success Rate"</span>,</span>
-<span id="cb5-14"><a href="#cb5-14" aria-hidden="true" tabindex="-1"></a>    <span class="at">dropback_pct =</span> <span class="st">"Pass Rate"</span>,</span>
-<span id="cb5-15"><a href="#cb5-15" aria-hidden="true" tabindex="-1"></a>    <span class="at">def_epa_allowed =</span> <span class="st">"Def EPA/Play"</span>,</span>
-<span id="cb5-16"><a href="#cb5-16" aria-hidden="true" tabindex="-1"></a>    <span class="at">def_success_rate_allowed =</span> <span class="st">"Def. Success Rate"</span></span>
-<span id="cb5-17"><a href="#cb5-17" aria-hidden="true" tabindex="-1"></a>  ) <span class="sc">|&gt;</span></span>
-<span id="cb5-18"><a href="#cb5-18" aria-hidden="true" tabindex="-1"></a>  <span class="fu">cols_hide</span>(<span class="at">columns =</span> <span class="fu">c</span>(def_plays, def_pass_epa_allowed, def_rush_epa_allowed)) <span class="sc">|&gt;</span></span>
-<span id="cb5-19"><a href="#cb5-19" aria-hidden="true" tabindex="-1"></a>  <span class="fu">fmt_number</span>(</span>
-<span id="cb5-20"><a href="#cb5-20" aria-hidden="true" tabindex="-1"></a>    <span class="at">columns =</span> <span class="fu">c</span>(off_epa_per_play, pass_epa, rush_epa, def_epa_allowed),</span>
-<span id="cb5-21"><a href="#cb5-21" aria-hidden="true" tabindex="-1"></a>    <span class="at">decimals =</span> <span class="dv">3</span></span>
-<span id="cb5-22"><a href="#cb5-22" aria-hidden="true" tabindex="-1"></a>  ) <span class="sc">|&gt;</span></span>
-<span id="cb5-23"><a href="#cb5-23" aria-hidden="true" tabindex="-1"></a>  <span class="fu">fmt_percent</span>(</span>
-<span id="cb5-24"><a href="#cb5-24" aria-hidden="true" tabindex="-1"></a>    <span class="at">columns =</span> <span class="fu">c</span>(off_success_rate, dropback_pct, def_success_rate_allowed),</span>
-<span id="cb5-25"><a href="#cb5-25" aria-hidden="true" tabindex="-1"></a>    <span class="at">decimals =</span> <span class="dv">1</span></span>
-<span id="cb5-26"><a href="#cb5-26" aria-hidden="true" tabindex="-1"></a>  ) <span class="sc">|&gt;</span></span>
-<span id="cb5-27"><a href="#cb5-27" aria-hidden="true" tabindex="-1"></a>  <span class="fu">data_color</span>(</span>
-<span id="cb5-28"><a href="#cb5-28" aria-hidden="true" tabindex="-1"></a>    <span class="at">columns =</span> off_epa_per_play,</span>
-<span id="cb5-29"><a href="#cb5-29" aria-hidden="true" tabindex="-1"></a>    <span class="at">palette =</span> <span class="fu">c</span>(<span class="st">"#f87171"</span>, <span class="st">"#ffffff"</span>, <span class="st">"#4ade80"</span>)</span>
-<span id="cb5-30"><a href="#cb5-30" aria-hidden="true" tabindex="-1"></a>  ) <span class="sc">|&gt;</span></span>
-<span id="cb5-31"><a href="#cb5-31" aria-hidden="true" tabindex="-1"></a>  <span class="fu">tab_source_note</span>(</span>
-<span id="cb5-32"><a href="#cb5-32" aria-hidden="true" tabindex="-1"></a>    <span class="at">source_note =</span> <span class="st">"Data Source: nflfastR | Scrimmage plays only (Weeks 1–4, 2025)"</span></span>
-<span id="cb5-33"><a href="#cb5-33" aria-hidden="true" tabindex="-1"></a>  )</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
-</details>
-<div class="cell-output-display">
-<div id="cozkaxwdgj" style="padding-left:0px;padding-right:0px;padding-top:10px;padding-bottom:10px;overflow-x:auto;overflow-y:auto;width:auto;height:auto;">
-<style>#cozkaxwdgj table {
-  font-family: system-ui, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji';
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-}
-
-#cozkaxwdgj thead, #cozkaxwdgj tbody, #cozkaxwdgj tfoot, #cozkaxwdgj tr, #cozkaxwdgj td, #cozkaxwdgj th {
-  border-style: none;
-}
-
-#cozkaxwdgj p {
-  margin: 0;
-  padding: 0;
-}
-
-#cozkaxwdgj .gt_table {
-  display: table;
-  border-collapse: collapse;
-  line-height: normal;
-  margin-left: auto;
-  margin-right: auto;
-  color: #333333;
-  font-size: 16px;
-  font-weight: normal;
-  font-style: normal;
-  background-color: #FFFFFF;
-  width: auto;
-  border-top-style: solid;
-  border-top-width: 2px;
-  border-top-color: #A8A8A8;
-  border-right-style: none;
-  border-right-width: 2px;
-  border-right-color: #D3D3D3;
-  border-bottom-style: solid;
-  border-bottom-width: 2px;
-  border-bottom-color: #A8A8A8;
-  border-left-style: none;
-  border-left-width: 2px;
-  border-left-color: #D3D3D3;
-}
-
-#cozkaxwdgj .gt_caption {
-  padding-top: 4px;
-  padding-bottom: 4px;
-}
-
-#cozkaxwdgj .gt_title {
-  color: #333333;
-  font-size: 125%;
-  font-weight: initial;
-  padding-top: 4px;
-  padding-bottom: 4px;
-  padding-left: 5px;
-  padding-right: 5px;
-  border-bottom-color: #FFFFFF;
-  border-bottom-width: 0;
-}
-
-#cozkaxwdgj .gt_subtitle {
-  color: #333333;
-  font-size: 85%;
-  font-weight: initial;
-  padding-top: 3px;
-  padding-bottom: 5px;
-  padding-left: 5px;
-  padding-right: 5px;
-  border-top-color: #FFFFFF;
-  border-top-width: 0;
-}
-
-#cozkaxwdgj .gt_heading {
-  background-color: #FFFFFF;
-  text-align: center;
-  border-bottom-color: #FFFFFF;
-  border-left-style: none;
-  border-left-width: 1px;
-  border-left-color: #D3D3D3;
-  border-right-style: none;
-  border-right-width: 1px;
-  border-right-color: #D3D3D3;
-}
-
-#cozkaxwdgj .gt_bottom_border {
-  border-bottom-style: solid;
-  border-bottom-width: 2px;
-  border-bottom-color: #D3D3D3;
-}
-
-#cozkaxwdgj .gt_col_headings {
-  border-top-style: solid;
-  border-top-width: 2px;
-  border-top-color: #D3D3D3;
-  border-bottom-style: solid;
-  border-bottom-width: 2px;
-  border-bottom-color: #D3D3D3;
-  border-left-style: none;
-  border-left-width: 1px;
-  border-left-color: #D3D3D3;
-  border-right-style: none;
-  border-right-width: 1px;
-  border-right-color: #D3D3D3;
-}
-
-#cozkaxwdgj .gt_col_heading {
-  color: #333333;
-  background-color: #FFFFFF;
-  font-size: 100%;
-  font-weight: normal;
-  text-transform: inherit;
-  border-left-style: none;
-  border-left-width: 1px;
-  border-left-color: #D3D3D3;
-  border-right-style: none;
-  border-right-width: 1px;
-  border-right-color: #D3D3D3;
-  vertical-align: bottom;
-  padding-top: 5px;
-  padding-bottom: 6px;
-  padding-left: 5px;
-  padding-right: 5px;
-  overflow-x: hidden;
-}
-
-#cozkaxwdgj .gt_column_spanner_outer {
-  color: #333333;
-  background-color: #FFFFFF;
-  font-size: 100%;
-  font-weight: normal;
-  text-transform: inherit;
-  padding-top: 0;
-  padding-bottom: 0;
-  padding-left: 4px;
-  padding-right: 4px;
-}
-
-#cozkaxwdgj .gt_column_spanner_outer:first-child {
-  padding-left: 0;
-}
-
-#cozkaxwdgj .gt_column_spanner_outer:last-child {
-  padding-right: 0;
-}
-
-#cozkaxwdgj .gt_column_spanner {
-  border-bottom-style: solid;
-  border-bottom-width: 2px;
-  border-bottom-color: #D3D3D3;
-  vertical-align: bottom;
-  padding-top: 5px;
-  padding-bottom: 5px;
-  overflow-x: hidden;
-  display: inline-block;
-  width: 100%;
-}
-
-#cozkaxwdgj .gt_spanner_row {
-  border-bottom-style: hidden;
-}
-
-#cozkaxwdgj .gt_group_heading {
-  padding-top: 8px;
-  padding-bottom: 8px;
-  padding-left: 5px;
-  padding-right: 5px;
-  color: #333333;
-  background-color: #FFFFFF;
-  font-size: 100%;
-  font-weight: initial;
-  text-transform: inherit;
-  border-top-style: solid;
-  border-top-width: 2px;
-  border-top-color: #D3D3D3;
-  border-bottom-style: solid;
-  border-bottom-width: 2px;
-  border-bottom-color: #D3D3D3;
-  border-left-style: none;
-  border-left-width: 1px;
-  border-left-color: #D3D3D3;
-  border-right-style: none;
-  border-right-width: 1px;
-  border-right-color: #D3D3D3;
-  vertical-align: middle;
-  text-align: left;
-}
-
-#cozkaxwdgj .gt_empty_group_heading {
-  padding: 0.5px;
-  color: #333333;
-  background-color: #FFFFFF;
-  font-size: 100%;
-  font-weight: initial;
-  border-top-style: solid;
-  border-top-width: 2px;
-  border-top-color: #D3D3D3;
-  border-bottom-style: solid;
-  border-bottom-width: 2px;
-  border-bottom-color: #D3D3D3;
-  vertical-align: middle;
-}
-
-#cozkaxwdgj .gt_from_md > :first-child {
-  margin-top: 0;
-}
-
-#cozkaxwdgj .gt_from_md > :last-child {
-  margin-bottom: 0;
-}
-
-#cozkaxwdgj .gt_row {
-  padding-top: 8px;
-  padding-bottom: 8px;
-  padding-left: 5px;
-  padding-right: 5px;
-  margin: 10px;
-  border-top-style: solid;
-  border-top-width: 1px;
-  border-top-color: #D3D3D3;
-  border-left-style: none;
-  border-left-width: 1px;
-  border-left-color: #D3D3D3;
-  border-right-style: none;
-  border-right-width: 1px;
-  border-right-color: #D3D3D3;
-  vertical-align: middle;
-  overflow-x: hidden;
-}
-
-#cozkaxwdgj .gt_stub {
-  color: #333333;
-  background-color: #FFFFFF;
-  font-size: 100%;
-  font-weight: initial;
-  text-transform: inherit;
-  border-right-style: solid;
-  border-right-width: 2px;
-  border-right-color: #D3D3D3;
-  padding-left: 5px;
-  padding-right: 5px;
-}
-
-#cozkaxwdgj .gt_stub_row_group {
-  color: #333333;
-  background-color: #FFFFFF;
-  font-size: 100%;
-  font-weight: initial;
-  text-transform: inherit;
-  border-right-style: solid;
-  border-right-width: 2px;
-  border-right-color: #D3D3D3;
-  padding-left: 5px;
-  padding-right: 5px;
-  vertical-align: top;
-}
-
-#cozkaxwdgj .gt_row_group_first td {
-  border-top-width: 2px;
-}
-
-#cozkaxwdgj .gt_row_group_first th {
-  border-top-width: 2px;
-}
-
-#cozkaxwdgj .gt_summary_row {
-  color: #333333;
-  background-color: #FFFFFF;
-  text-transform: inherit;
-  padding-top: 8px;
-  padding-bottom: 8px;
-  padding-left: 5px;
-  padding-right: 5px;
-}
-
-#cozkaxwdgj .gt_first_summary_row {
-  border-top-style: solid;
-  border-top-color: #D3D3D3;
-}
-
-#cozkaxwdgj .gt_first_summary_row.thick {
-  border-top-width: 2px;
-}
-
-#cozkaxwdgj .gt_last_summary_row {
-  padding-top: 8px;
-  padding-bottom: 8px;
-  padding-left: 5px;
-  padding-right: 5px;
-  border-bottom-style: solid;
-  border-bottom-width: 2px;
-  border-bottom-color: #D3D3D3;
-}
-
-#cozkaxwdgj .gt_grand_summary_row {
-  color: #333333;
-  background-color: #FFFFFF;
-  text-transform: inherit;
-  padding-top: 8px;
-  padding-bottom: 8px;
-  padding-left: 5px;
-  padding-right: 5px;
-}
-
-#cozkaxwdgj .gt_first_grand_summary_row {
-  padding-top: 8px;
-  padding-bottom: 8px;
-  padding-left: 5px;
-  padding-right: 5px;
-  border-top-style: double;
-  border-top-width: 6px;
-  border-top-color: #D3D3D3;
-}
-
-#cozkaxwdgj .gt_last_grand_summary_row_top {
-  padding-top: 8px;
-  padding-bottom: 8px;
-  padding-left: 5px;
-  padding-right: 5px;
-  border-bottom-style: double;
-  border-bottom-width: 6px;
-  border-bottom-color: #D3D3D3;
-}
-
-#cozkaxwdgj .gt_striped {
-  background-color: rgba(128, 128, 128, 0.05);
-}
-
-#cozkaxwdgj .gt_table_body {
-  border-top-style: solid;
-  border-top-width: 2px;
-  border-top-color: #D3D3D3;
-  border-bottom-style: solid;
-  border-bottom-width: 2px;
-  border-bottom-color: #D3D3D3;
-}
-
-#cozkaxwdgj .gt_footnotes {
-  color: #333333;
-  background-color: #FFFFFF;
-  border-bottom-style: none;
-  border-bottom-width: 2px;
-  border-bottom-color: #D3D3D3;
-  border-left-style: none;
-  border-left-width: 2px;
-  border-left-color: #D3D3D3;
-  border-right-style: none;
-  border-right-width: 2px;
-  border-right-color: #D3D3D3;
-}
-
-#cozkaxwdgj .gt_footnote {
-  margin: 0px;
-  font-size: 90%;
-  padding-top: 4px;
-  padding-bottom: 4px;
-  padding-left: 5px;
-  padding-right: 5px;
-}
-
-#cozkaxwdgj .gt_sourcenotes {
-  color: #333333;
-  background-color: #FFFFFF;
-  border-bottom-style: none;
-  border-bottom-width: 2px;
-  border-bottom-color: #D3D3D3;
-  border-left-style: none;
-  border-left-width: 2px;
-  border-left-color: #D3D3D3;
-  border-right-style: none;
-  border-right-width: 2px;
-  border-right-color: #D3D3D3;
-}
-
-#cozkaxwdgj .gt_sourcenote {
-  font-size: 90%;
-  padding-top: 4px;
-  padding-bottom: 4px;
-  padding-left: 5px;
-  padding-right: 5px;
-}
-
-#cozkaxwdgj .gt_left {
-  text-align: left;
-}
-
-#cozkaxwdgj .gt_center {
-  text-align: center;
-}
-
-#cozkaxwdgj .gt_right {
-  text-align: right;
-  font-variant-numeric: tabular-nums;
-}
-
-#cozkaxwdgj .gt_font_normal {
-  font-weight: normal;
-}
-
-#cozkaxwdgj .gt_font_bold {
-  font-weight: bold;
-}
-
-#cozkaxwdgj .gt_font_italic {
-  font-style: italic;
-}
-
-#cozkaxwdgj .gt_super {
-  font-size: 65%;
-}
-
-#cozkaxwdgj .gt_footnote_marks {
-  font-size: 75%;
-  vertical-align: 0.4em;
-  position: initial;
-}
-
-#cozkaxwdgj .gt_asterisk {
-  font-size: 100%;
-  vertical-align: 0;
-}
-
-#cozkaxwdgj .gt_indent_1 {
-  text-indent: 5px;
-}
-
-#cozkaxwdgj .gt_indent_2 {
-  text-indent: 10px;
-}
-
-#cozkaxwdgj .gt_indent_3 {
-  text-indent: 15px;
-}
-
-#cozkaxwdgj .gt_indent_4 {
-  text-indent: 20px;
-}
-
-#cozkaxwdgj .gt_indent_5 {
-  text-indent: 25px;
-}
-
-#cozkaxwdgj .katex-display {
-  display: inline-flex !important;
-  margin-bottom: 0.75em !important;
-}
-
-#cozkaxwdgj div.Reactable > div.rt-table > div.rt-thead > div.rt-tr.rt-tr-group-header > div.rt-th-group:after {
-  height: 0px !important;
-}
-</style>
-
-<table class="gt_table caption-top table table-sm table-striped small" data-quarto-bootstrap="false">
-<thead>
-<tr class="gt_heading header">
-<td colspan="9" class="gt_heading gt_title gt_font_normal"><strong>NFL Team Performance Summary: 2025 (Weeks 1–4)</strong></td>
-</tr>
-<tr class="gt_heading even">
-<td colspan="9" class="gt_heading gt_subtitle gt_font_normal gt_bottom_border">Offensive and Defensive Efficiency Metrics Calculated via nflfastR</td>
-</tr>
-<tr class="gt_col_headings header">
-<th id="team" class="gt_col_heading gt_columns_bottom_border gt_left" data-quarto-table-cell-role="th" scope="col">Team</th>
-<th id="off_plays" class="gt_col_heading gt_columns_bottom_border gt_right" data-quarto-table-cell-role="th" scope="col">Off. Plays</th>
-<th id="off_epa_per_play" class="gt_col_heading gt_columns_bottom_border gt_right" data-quarto-table-cell-role="th" scope="col">Off EPA/Play</th>
-<th id="pass_epa" class="gt_col_heading gt_columns_bottom_border gt_right" data-quarto-table-cell-role="th" scope="col">Pass EPA</th>
-<th id="rush_epa" class="gt_col_heading gt_columns_bottom_border gt_right" data-quarto-table-cell-role="th" scope="col">Rush EPA</th>
-<th id="off_success_rate" class="gt_col_heading gt_columns_bottom_border gt_right" data-quarto-table-cell-role="th" scope="col">Off. Success Rate</th>
-<th id="dropback_pct" class="gt_col_heading gt_columns_bottom_border gt_right" data-quarto-table-cell-role="th" scope="col">Pass Rate</th>
-<th id="def_epa_allowed" class="gt_col_heading gt_columns_bottom_border gt_right" data-quarto-table-cell-role="th" scope="col">Def EPA/Play</th>
-<th id="def_success_rate_allowed" class="gt_col_heading gt_columns_bottom_border gt_right" data-quarto-table-cell-role="th" scope="col">Def. Success Rate</th>
-</tr>
-</thead>
-<tbody class="gt_table_body">
-<tr class="odd">
-<td class="gt_row gt_left" headers="team">BUF</td>
-<td class="gt_row gt_right" headers="off_plays">268</td>
-<td class="gt_row gt_right" headers="off_epa_per_play" style="background-color: #4ADE80; color: #000000">0.230</td>
-<td class="gt_row gt_right" headers="pass_epa">0.332</td>
-<td class="gt_row gt_right" headers="rush_epa">0.091</td>
-<td class="gt_row gt_right" headers="off_success_rate">48.9%</td>
-<td class="gt_row gt_right" headers="dropback_pct">57.5%</td>
-<td class="gt_row gt_right" headers="def_epa_allowed">0.012</td>
-<td class="gt_row gt_right" headers="def_success_rate_allowed">42.0%</td>
-</tr>
-<tr class="even">
-<td class="gt_row gt_left" headers="team">GB</td>
-<td class="gt_row gt_right" headers="off_plays">259</td>
-<td class="gt_row gt_right" headers="off_epa_per_play" style="background-color: #81E79E; color: #000000">0.175</td>
-<td class="gt_row gt_right" headers="pass_epa">0.333</td>
-<td class="gt_row gt_right" headers="rush_epa">−0.031</td>
-<td class="gt_row gt_right" headers="off_success_rate">48.3%</td>
-<td class="gt_row gt_right" headers="dropback_pct">56.4%</td>
-<td class="gt_row gt_right" headers="def_epa_allowed">0.009</td>
-<td class="gt_row gt_right" headers="def_success_rate_allowed">42.2%</td>
-</tr>
-<tr class="odd">
-<td class="gt_row gt_left" headers="team">IND</td>
-<td class="gt_row gt_right" headers="off_plays">258</td>
-<td class="gt_row gt_right" headers="off_epa_per_play" style="background-color: #93EAA9; color: #000000">0.153</td>
-<td class="gt_row gt_right" headers="pass_epa">0.239</td>
-<td class="gt_row gt_right" headers="rush_epa">0.045</td>
-<td class="gt_row gt_right" headers="off_success_rate">49.6%</td>
-<td class="gt_row gt_right" headers="dropback_pct">55.4%</td>
-<td class="gt_row gt_right" headers="def_epa_allowed">−0.024</td>
-<td class="gt_row gt_right" headers="def_success_rate_allowed">47.6%</td>
-</tr>
-<tr class="even">
-<td class="gt_row gt_left" headers="team">DAL</td>
-<td class="gt_row gt_right" headers="off_plays">292</td>
-<td class="gt_row gt_right" headers="off_epa_per_play" style="background-color: #98EBAD; color: #000000">0.146</td>
-<td class="gt_row gt_right" headers="pass_epa">0.206</td>
-<td class="gt_row gt_right" headers="rush_epa">0.026</td>
-<td class="gt_row gt_right" headers="off_success_rate">49.7%</td>
-<td class="gt_row gt_right" headers="dropback_pct">66.4%</td>
-<td class="gt_row gt_right" headers="def_epa_allowed">0.261</td>
-<td class="gt_row gt_right" headers="def_success_rate_allowed">50.6%</td>
-</tr>
-<tr class="odd">
-<td class="gt_row gt_left" headers="team">DET</td>
-<td class="gt_row gt_right" headers="off_plays">250</td>
-<td class="gt_row gt_right" headers="off_epa_per_play" style="background-color: #9BECAF; color: #000000">0.141</td>
-<td class="gt_row gt_right" headers="pass_epa">0.288</td>
-<td class="gt_row gt_right" headers="rush_epa">−0.028</td>
-<td class="gt_row gt_right" headers="off_success_rate">48.8%</td>
-<td class="gt_row gt_right" headers="dropback_pct">53.6%</td>
-<td class="gt_row gt_right" headers="def_epa_allowed">−0.075</td>
-<td class="gt_row gt_right" headers="def_success_rate_allowed">38.2%</td>
-</tr>
-<tr class="even">
-<td class="gt_row gt_left" headers="team">BAL</td>
-<td class="gt_row gt_right" headers="off_plays">215</td>
-<td class="gt_row gt_right" headers="off_epa_per_play" style="background-color: #A8EEB8; color: #000000">0.125</td>
-<td class="gt_row gt_right" headers="pass_epa">0.174</td>
-<td class="gt_row gt_right" headers="rush_epa">0.032</td>
-<td class="gt_row gt_right" headers="off_success_rate">45.6%</td>
-<td class="gt_row gt_right" headers="dropback_pct">65.6%</td>
-<td class="gt_row gt_right" headers="def_epa_allowed">0.138</td>
-<td class="gt_row gt_right" headers="def_success_rate_allowed">46.9%</td>
-</tr>
-<tr class="odd">
-<td class="gt_row gt_left" headers="team">KC</td>
-<td class="gt_row gt_right" headers="off_plays">260</td>
-<td class="gt_row gt_right" headers="off_epa_per_play" style="background-color: #ADEFBC; color: #000000">0.118</td>
-<td class="gt_row gt_right" headers="pass_epa">0.196</td>
-<td class="gt_row gt_right" headers="rush_epa">−0.051</td>
-<td class="gt_row gt_right" headers="off_success_rate">45.0%</td>
-<td class="gt_row gt_right" headers="dropback_pct">68.5%</td>
-<td class="gt_row gt_right" headers="def_epa_allowed">0.023</td>
-<td class="gt_row gt_right" headers="def_success_rate_allowed">46.2%</td>
-</tr>
-<tr class="even">
-<td class="gt_row gt_left" headers="team">WAS</td>
-<td class="gt_row gt_right" headers="off_plays">248</td>
-<td class="gt_row gt_right" headers="off_epa_per_play" style="background-color: #BCF3C8; color: #000000">0.096</td>
-<td class="gt_row gt_right" headers="pass_epa">0.101</td>
-<td class="gt_row gt_right" headers="rush_epa">0.089</td>
-<td class="gt_row gt_right" headers="off_success_rate">46.8%</td>
-<td class="gt_row gt_right" headers="dropback_pct">62.9%</td>
-<td class="gt_row gt_right" headers="def_epa_allowed">0.064</td>
-<td class="gt_row gt_right" headers="def_success_rate_allowed">43.1%</td>
-</tr>
-<tr class="odd">
-<td class="gt_row gt_left" headers="team">NE</td>
-<td class="gt_row gt_right" headers="off_plays">248</td>
-<td class="gt_row gt_right" headers="off_epa_per_play" style="background-color: #C3F4CD; color: #000000">0.086</td>
-<td class="gt_row gt_right" headers="pass_epa">0.301</td>
-<td class="gt_row gt_right" headers="rush_epa">−0.298</td>
-<td class="gt_row gt_right" headers="off_success_rate">44.8%</td>
-<td class="gt_row gt_right" headers="dropback_pct">64.1%</td>
-<td class="gt_row gt_right" headers="def_epa_allowed">0.051</td>
-<td class="gt_row gt_right" headers="def_success_rate_allowed">47.9%</td>
-</tr>
-<tr class="even">
-<td class="gt_row gt_left" headers="team">LA</td>
-<td class="gt_row gt_right" headers="off_plays">255</td>
-<td class="gt_row gt_right" headers="off_epa_per_play" style="background-color: #CEF6D6; color: #000000">0.070</td>
-<td class="gt_row gt_right" headers="pass_epa">0.150</td>
-<td class="gt_row gt_right" headers="rush_epa">−0.049</td>
-<td class="gt_row gt_right" headers="off_success_rate">48.6%</td>
-<td class="gt_row gt_right" headers="dropback_pct">60.0%</td>
-<td class="gt_row gt_right" headers="def_epa_allowed">−0.096</td>
-<td class="gt_row gt_right" headers="def_success_rate_allowed">40.4%</td>
-</tr>
-<tr class="odd">
-<td class="gt_row gt_left" headers="team">PIT</td>
-<td class="gt_row gt_right" headers="off_plays">219</td>
-<td class="gt_row gt_right" headers="off_epa_per_play" style="background-color: #D6F7DC; color: #000000">0.059</td>
-<td class="gt_row gt_right" headers="pass_epa">0.121</td>
-<td class="gt_row gt_right" headers="rush_epa">−0.031</td>
-<td class="gt_row gt_right" headers="off_success_rate">46.6%</td>
-<td class="gt_row gt_right" headers="dropback_pct">59.4%</td>
-<td class="gt_row gt_right" headers="def_epa_allowed">0.044</td>
-<td class="gt_row gt_right" headers="def_success_rate_allowed">46.0%</td>
-</tr>
-<tr class="even">
-<td class="gt_row gt_left" headers="team">DEN</td>
-<td class="gt_row gt_right" headers="off_plays">262</td>
-<td class="gt_row gt_right" headers="off_epa_per_play" style="background-color: #DDF9E3; color: #000000">0.048</td>
-<td class="gt_row gt_right" headers="pass_epa">0.106</td>
-<td class="gt_row gt_right" headers="rush_epa">−0.049</td>
-<td class="gt_row gt_right" headers="off_success_rate">42.0%</td>
-<td class="gt_row gt_right" headers="dropback_pct">62.2%</td>
-<td class="gt_row gt_right" headers="def_epa_allowed">−0.096</td>
-<td class="gt_row gt_right" headers="def_success_rate_allowed">38.7%</td>
-</tr>
-<tr class="odd">
-<td class="gt_row gt_left" headers="team">TB</td>
-<td class="gt_row gt_right" headers="off_plays">279</td>
-<td class="gt_row gt_right" headers="off_epa_per_play" style="background-color: #E3FAE7; color: #000000">0.039</td>
-<td class="gt_row gt_right" headers="pass_epa">0.163</td>
-<td class="gt_row gt_right" headers="rush_epa">−0.167</td>
-<td class="gt_row gt_right" headers="off_success_rate">41.6%</td>
-<td class="gt_row gt_right" headers="dropback_pct">62.4%</td>
-<td class="gt_row gt_right" headers="def_epa_allowed">−0.045</td>
-<td class="gt_row gt_right" headers="def_success_rate_allowed">43.5%</td>
-</tr>
-<tr class="even">
-<td class="gt_row gt_left" headers="team">SEA</td>
-<td class="gt_row gt_right" headers="off_plays">238</td>
-<td class="gt_row gt_right" headers="off_epa_per_play" style="background-color: #E6FBEA; color: #000000">0.035</td>
-<td class="gt_row gt_right" headers="pass_epa">0.237</td>
-<td class="gt_row gt_right" headers="rush_epa">−0.154</td>
-<td class="gt_row gt_right" headers="off_success_rate">45.0%</td>
-<td class="gt_row gt_right" headers="dropback_pct">48.3%</td>
-<td class="gt_row gt_right" headers="def_epa_allowed">−0.049</td>
-<td class="gt_row gt_right" headers="def_success_rate_allowed">42.0%</td>
-</tr>
-<tr class="odd">
-<td class="gt_row gt_left" headers="team">ARI</td>
-<td class="gt_row gt_right" headers="off_plays">253</td>
-<td class="gt_row gt_right" headers="off_epa_per_play" style="background-color: #E9FBEC; color: #000000">0.030</td>
-<td class="gt_row gt_right" headers="pass_epa">0.109</td>
-<td class="gt_row gt_right" headers="rush_epa">−0.131</td>
-<td class="gt_row gt_right" headers="off_success_rate">40.7%</td>
-<td class="gt_row gt_right" headers="dropback_pct">67.2%</td>
-<td class="gt_row gt_right" headers="def_epa_allowed">0.001</td>
-<td class="gt_row gt_right" headers="def_success_rate_allowed">46.2%</td>
-</tr>
-<tr class="even">
-<td class="gt_row gt_left" headers="team">JAX</td>
-<td class="gt_row gt_right" headers="off_plays">267</td>
-<td class="gt_row gt_right" headers="off_epa_per_play" style="background-color: #EAFBED; color: #000000">0.029</td>
-<td class="gt_row gt_right" headers="pass_epa">0.053</td>
-<td class="gt_row gt_right" headers="rush_epa">−0.007</td>
-<td class="gt_row gt_right" headers="off_success_rate">44.6%</td>
-<td class="gt_row gt_right" headers="dropback_pct">58.8%</td>
-<td class="gt_row gt_right" headers="def_epa_allowed">−0.099</td>
-<td class="gt_row gt_right" headers="def_success_rate_allowed">40.2%</td>
-</tr>
-<tr class="odd">
-<td class="gt_row gt_left" headers="team">PHI</td>
-<td class="gt_row gt_right" headers="off_plays">241</td>
-<td class="gt_row gt_right" headers="off_epa_per_play" style="background-color: #EAFBED; color: #000000">0.028</td>
-<td class="gt_row gt_right" headers="pass_epa">0.032</td>
-<td class="gt_row gt_right" headers="rush_epa">0.024</td>
-<td class="gt_row gt_right" headers="off_success_rate">44.4%</td>
-<td class="gt_row gt_right" headers="dropback_pct">53.9%</td>
-<td class="gt_row gt_right" headers="def_epa_allowed">−0.032</td>
-<td class="gt_row gt_right" headers="def_success_rate_allowed">44.0%</td>
-</tr>
-<tr class="even">
-<td class="gt_row gt_left" headers="team">LAC</td>
-<td class="gt_row gt_right" headers="off_plays">267</td>
-<td class="gt_row gt_right" headers="off_epa_per_play" style="background-color: #EAFBED; color: #000000">0.028</td>
-<td class="gt_row gt_right" headers="pass_epa">0.096</td>
-<td class="gt_row gt_right" headers="rush_epa">−0.118</td>
-<td class="gt_row gt_right" headers="off_success_rate">45.7%</td>
-<td class="gt_row gt_right" headers="dropback_pct">68.2%</td>
-<td class="gt_row gt_right" headers="def_epa_allowed">−0.100</td>
-<td class="gt_row gt_right" headers="def_success_rate_allowed">37.7%</td>
-</tr>
-<tr class="odd">
-<td class="gt_row gt_left" headers="team">SF</td>
-<td class="gt_row gt_right" headers="off_plays">270</td>
-<td class="gt_row gt_right" headers="off_epa_per_play" style="background-color: #EEFCF1; color: #000000">0.022</td>
-<td class="gt_row gt_right" headers="pass_epa">0.145</td>
-<td class="gt_row gt_right" headers="rush_epa">−0.197</td>
-<td class="gt_row gt_right" headers="off_success_rate">48.9%</td>
-<td class="gt_row gt_right" headers="dropback_pct">64.1%</td>
-<td class="gt_row gt_right" headers="def_epa_allowed">−0.021</td>
-<td class="gt_row gt_right" headers="def_success_rate_allowed">44.0%</td>
-</tr>
-<tr class="even">
-<td class="gt_row gt_left" headers="team">MIA</td>
-<td class="gt_row gt_right" headers="off_plays">223</td>
-<td class="gt_row gt_right" headers="off_epa_per_play" style="background-color: #F5FDF6; color: #000000">0.012</td>
-<td class="gt_row gt_right" headers="pass_epa">0.026</td>
-<td class="gt_row gt_right" headers="rush_epa">−0.014</td>
-<td class="gt_row gt_right" headers="off_success_rate">42.2%</td>
-<td class="gt_row gt_right" headers="dropback_pct">65.0%</td>
-<td class="gt_row gt_right" headers="def_epa_allowed">0.214</td>
-<td class="gt_row gt_right" headers="def_success_rate_allowed">53.0%</td>
-</tr>
-<tr class="odd">
-<td class="gt_row gt_left" headers="team">ATL</td>
-<td class="gt_row gt_right" headers="off_plays">268</td>
-<td class="gt_row gt_right" headers="off_epa_per_play" style="background-color: #FFFDFD; color: #000000">−0.006</td>
-<td class="gt_row gt_right" headers="pass_epa">0.044</td>
-<td class="gt_row gt_right" headers="rush_epa">−0.072</td>
-<td class="gt_row gt_right" headers="off_success_rate">44.4%</td>
-<td class="gt_row gt_right" headers="dropback_pct">56.3%</td>
-<td class="gt_row gt_right" headers="def_epa_allowed">−0.028</td>
-<td class="gt_row gt_right" headers="def_success_rate_allowed">44.2%</td>
-</tr>
-<tr class="even">
-<td class="gt_row gt_left" headers="team">NYJ</td>
-<td class="gt_row gt_right" headers="off_plays">241</td>
-<td class="gt_row gt_right" headers="off_epa_per_play" style="background-color: #FFFBFB; color: #000000">−0.010</td>
-<td class="gt_row gt_right" headers="pass_epa">0.061</td>
-<td class="gt_row gt_right" headers="rush_epa">−0.121</td>
-<td class="gt_row gt_right" headers="off_success_rate">48.1%</td>
-<td class="gt_row gt_right" headers="dropback_pct">61.0%</td>
-<td class="gt_row gt_right" headers="def_epa_allowed">0.130</td>
-<td class="gt_row gt_right" headers="def_success_rate_allowed">40.4%</td>
-</tr>
-<tr class="odd">
-<td class="gt_row gt_left" headers="team">NYG</td>
-<td class="gt_row gt_right" headers="off_plays">277</td>
-<td class="gt_row gt_right" headers="off_epa_per_play" style="background-color: #FFEEED; color: #000000">−0.032</td>
-<td class="gt_row gt_right" headers="pass_epa">0.009</td>
-<td class="gt_row gt_right" headers="rush_epa">−0.102</td>
-<td class="gt_row gt_right" headers="off_success_rate">42.2%</td>
-<td class="gt_row gt_right" headers="dropback_pct">62.5%</td>
-<td class="gt_row gt_right" headers="def_epa_allowed">0.104</td>
-<td class="gt_row gt_right" headers="def_success_rate_allowed">48.3%</td>
-</tr>
-<tr class="even">
-<td class="gt_row gt_left" headers="team">CHI</td>
-<td class="gt_row gt_right" headers="off_plays">259</td>
-<td class="gt_row gt_right" headers="off_epa_per_play" style="background-color: #FFEDEB; color: #000000">−0.035</td>
-<td class="gt_row gt_right" headers="pass_epa">0.089</td>
-<td class="gt_row gt_right" headers="rush_epa">−0.252</td>
-<td class="gt_row gt_right" headers="off_success_rate">40.5%</td>
-<td class="gt_row gt_right" headers="dropback_pct">63.7%</td>
-<td class="gt_row gt_right" headers="def_epa_allowed">0.032</td>
-<td class="gt_row gt_right" headers="def_success_rate_allowed">50.0%</td>
-</tr>
-<tr class="odd">
-<td class="gt_row gt_left" headers="team">CAR</td>
-<td class="gt_row gt_right" headers="off_plays">273</td>
-<td class="gt_row gt_right" headers="off_epa_per_play" style="background-color: #FFEAE9; color: #000000">−0.038</td>
-<td class="gt_row gt_right" headers="pass_epa">0.004</td>
-<td class="gt_row gt_right" headers="rush_epa">−0.118</td>
-<td class="gt_row gt_right" headers="off_success_rate">45.4%</td>
-<td class="gt_row gt_right" headers="dropback_pct">65.2%</td>
-<td class="gt_row gt_right" headers="def_epa_allowed">0.022</td>
-<td class="gt_row gt_right" headers="def_success_rate_allowed">41.5%</td>
-</tr>
-<tr class="even">
-<td class="gt_row gt_left" headers="team">NO</td>
-<td class="gt_row gt_right" headers="off_plays">284</td>
-<td class="gt_row gt_right" headers="off_epa_per_play" style="background-color: #FFD4D1; color: #000000">−0.076</td>
-<td class="gt_row gt_right" headers="pass_epa">−0.052</td>
-<td class="gt_row gt_right" headers="rush_epa">−0.116</td>
-<td class="gt_row gt_right" headers="off_success_rate">43.3%</td>
-<td class="gt_row gt_right" headers="dropback_pct">62.7%</td>
-<td class="gt_row gt_right" headers="def_epa_allowed">0.104</td>
-<td class="gt_row gt_right" headers="def_success_rate_allowed">45.7%</td>
-</tr>
-<tr class="odd">
-<td class="gt_row gt_left" headers="team">MIN</td>
-<td class="gt_row gt_right" headers="off_plays">238</td>
-<td class="gt_row gt_right" headers="off_epa_per_play" style="background-color: #FFD4D1; color: #000000">−0.076</td>
-<td class="gt_row gt_right" headers="pass_epa">−0.102</td>
-<td class="gt_row gt_right" headers="rush_epa">−0.033</td>
-<td class="gt_row gt_right" headers="off_success_rate">44.5%</td>
-<td class="gt_row gt_right" headers="dropback_pct">61.8%</td>
-<td class="gt_row gt_right" headers="def_epa_allowed">−0.142</td>
-<td class="gt_row gt_right" headers="def_success_rate_allowed">43.1%</td>
-</tr>
-<tr class="even">
-<td class="gt_row gt_left" headers="team">HOU</td>
-<td class="gt_row gt_right" headers="off_plays">243</td>
-<td class="gt_row gt_right" headers="off_epa_per_play" style="background-color: #FFD4D0; color: #000000">−0.076</td>
-<td class="gt_row gt_right" headers="pass_epa">−0.052</td>
-<td class="gt_row gt_right" headers="rush_epa">−0.116</td>
-<td class="gt_row gt_right" headers="off_success_rate">37.4%</td>
-<td class="gt_row gt_right" headers="dropback_pct">61.7%</td>
-<td class="gt_row gt_right" headers="def_epa_allowed">−0.072</td>
-<td class="gt_row gt_right" headers="def_success_rate_allowed">43.0%</td>
-</tr>
-<tr class="odd">
-<td class="gt_row gt_left" headers="team">LV</td>
-<td class="gt_row gt_right" headers="off_plays">248</td>
-<td class="gt_row gt_right" headers="off_epa_per_play" style="background-color: #FFC2BE; color: #000000">−0.107</td>
-<td class="gt_row gt_right" headers="pass_epa">−0.016</td>
-<td class="gt_row gt_right" headers="rush_epa">−0.244</td>
-<td class="gt_row gt_right" headers="off_success_rate">39.9%</td>
-<td class="gt_row gt_right" headers="dropback_pct">60.1%</td>
-<td class="gt_row gt_right" headers="def_epa_allowed">−0.007</td>
-<td class="gt_row gt_right" headers="def_success_rate_allowed">43.0%</td>
-</tr>
-<tr class="even">
-<td class="gt_row gt_left" headers="team">CLE</td>
-<td class="gt_row gt_right" headers="off_plays">280</td>
-<td class="gt_row gt_right" headers="off_epa_per_play" style="background-color: #FE8D8A; color: #000000">−0.193</td>
-<td class="gt_row gt_right" headers="pass_epa">−0.272</td>
-<td class="gt_row gt_right" headers="rush_epa">−0.026</td>
-<td class="gt_row gt_right" headers="off_success_rate">35.0%</td>
-<td class="gt_row gt_right" headers="dropback_pct">67.9%</td>
-<td class="gt_row gt_right" headers="def_epa_allowed">−0.042</td>
-<td class="gt_row gt_right" headers="def_success_rate_allowed">40.1%</td>
-</tr>
-<tr class="odd">
-<td class="gt_row gt_left" headers="team">CIN</td>
-<td class="gt_row gt_right" headers="off_plays">224</td>
-<td class="gt_row gt_right" headers="off_epa_per_play" style="background-color: #FA7A78; color: #FFFFFF">−0.224</td>
-<td class="gt_row gt_right" headers="pass_epa">−0.289</td>
-<td class="gt_row gt_right" headers="rush_epa">−0.098</td>
-<td class="gt_row gt_right" headers="off_success_rate">39.3%</td>
-<td class="gt_row gt_right" headers="dropback_pct">65.6%</td>
-<td class="gt_row gt_right" headers="def_epa_allowed">0.090</td>
-<td class="gt_row gt_right" headers="def_success_rate_allowed">47.4%</td>
-</tr>
-<tr class="even">
-<td class="gt_row gt_left" headers="team">TEN</td>
-<td class="gt_row gt_right" headers="off_plays">242</td>
-<td class="gt_row gt_right" headers="off_epa_per_play" style="background-color: #F87171; color: #FFFFFF">−0.237</td>
-<td class="gt_row gt_right" headers="pass_epa">−0.286</td>
-<td class="gt_row gt_right" headers="rush_epa">−0.137</td>
-<td class="gt_row gt_right" headers="off_success_rate">36.4%</td>
-<td class="gt_row gt_right" headers="dropback_pct">66.9%</td>
-<td class="gt_row gt_right" headers="def_epa_allowed">0.152</td>
-<td class="gt_row gt_right" headers="def_success_rate_allowed">45.7%</td>
-</tr>
-</tbody><tfoot>
-<tr class="gt_sourcenotes odd">
-<td colspan="9" class="gt_sourcenote">Data Source: nflfastR | Scrimmage plays only (Weeks 1–4, 2025)</td>
-</tr>
-</tfoot>
-
-</table>
-
-</div>
-</div>
-</div>
-<div class="cell">
-<details open="" class="code-fold">
-<summary>Show R Code</summary>
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb6"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Compute tier averages for reference lines</span></span>
-<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a>avg_off_epa <span class="ot">&lt;-</span> <span class="fu">mean</span>(team_summary<span class="sc">$</span>off_epa_per_play, <span class="at">na.rm =</span> <span class="cn">TRUE</span>)</span>
-<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a>avg_def_epa <span class="ot">&lt;-</span> <span class="fu">mean</span>(team_summary<span class="sc">$</span>def_epa_allowed, <span class="at">na.rm =</span> <span class="cn">TRUE</span>)</span>
-<span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb6-5"><a href="#cb6-5" aria-hidden="true" tabindex="-1"></a><span class="fu">ggplot</span>(team_summary, <span class="fu">aes</span>(<span class="at">x =</span> off_epa_per_play, <span class="at">y =</span> def_epa_allowed)) <span class="sc">+</span></span>
-<span id="cb6-6"><a href="#cb6-6" aria-hidden="true" tabindex="-1"></a>  <span class="co"># Quadrant Mean Lines</span></span>
-<span id="cb6-7"><a href="#cb6-7" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_hline</span>(<span class="at">yintercept =</span> avg_def_epa, <span class="at">linetype =</span> <span class="st">"dashed"</span>, <span class="at">color =</span> <span class="st">"gray50"</span>, <span class="at">linewidth =</span> <span class="fl">0.6</span>) <span class="sc">+</span></span>
-<span id="cb6-8"><a href="#cb6-8" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_vline</span>(<span class="at">xintercept =</span> avg_off_epa, <span class="at">linetype =</span> <span class="st">"dashed"</span>, <span class="at">color =</span> <span class="st">"gray50"</span>, <span class="at">linewidth =</span> <span class="fl">0.6</span>) <span class="sc">+</span></span>
-<span id="cb6-9"><a href="#cb6-9" aria-hidden="true" tabindex="-1"></a>  <span class="co"># Official NFL Team Logos</span></span>
-<span id="cb6-10"><a href="#cb6-10" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_nfl_logos</span>(<span class="fu">aes</span>(<span class="at">team_abbr =</span> team), <span class="at">width =</span> <span class="fl">0.055</span>, <span class="at">alpha =</span> <span class="fl">0.9</span>) <span class="sc">+</span></span>
-<span id="cb6-11"><a href="#cb6-11" aria-hidden="true" tabindex="-1"></a>  <span class="co"># Invert Y-axis so lower EPA allowed (better defense) is higher up</span></span>
-<span id="cb6-12"><a href="#cb6-12" aria-hidden="true" tabindex="-1"></a>  <span class="fu">scale_y_reverse</span>() <span class="sc">+</span></span>
-<span id="cb6-13"><a href="#cb6-13" aria-hidden="true" tabindex="-1"></a>  <span class="fu">labs</span>(</span>
-<span id="cb6-14"><a href="#cb6-14" aria-hidden="true" tabindex="-1"></a>    <span class="at">title =</span> <span class="st">"2025 NFL Team Tier Breakdown (Weeks 1–4)"</span>,</span>
-<span id="cb6-15"><a href="#cb6-15" aria-hidden="true" tabindex="-1"></a>    <span class="at">subtitle =</span> <span class="st">"Offensive Efficiency vs. Defensive Efficiency"</span>,</span>
-<span id="cb6-16"><a href="#cb6-16" aria-hidden="true" tabindex="-1"></a>    <span class="at">x =</span> <span class="st">"Offensive EPA per Play (Higher = Better Offense)"</span>,</span>
-<span id="cb6-17"><a href="#cb6-17" aria-hidden="true" tabindex="-1"></a>    <span class="at">y =</span> <span class="st">"Defensive EPA per Play Allowed (Lower = Better Defense)"</span>,</span>
-<span id="cb6-18"><a href="#cb6-18" aria-hidden="true" tabindex="-1"></a>    <span class="at">caption =</span> <span class="st">"Chart: Senior Data Science | Data: nflfastR"</span></span>
-<span id="cb6-19"><a href="#cb6-19" aria-hidden="true" tabindex="-1"></a>  ) <span class="sc">+</span></span>
-<span id="cb6-20"><a href="#cb6-20" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme_minimal</span>(<span class="at">base_size =</span> <span class="dv">13</span>) <span class="sc">+</span></span>
-<span id="cb6-21"><a href="#cb6-21" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme</span>(</span>
-<span id="cb6-22"><a href="#cb6-22" aria-hidden="true" tabindex="-1"></a>    <span class="at">plot.title =</span> <span class="fu">element_text</span>(<span class="at">face =</span> <span class="st">"bold"</span>, <span class="at">size =</span> <span class="dv">16</span>, <span class="at">hjust =</span> <span class="fl">0.5</span>),</span>
-<span id="cb6-23"><a href="#cb6-23" aria-hidden="true" tabindex="-1"></a>    <span class="at">plot.subtitle =</span> <span class="fu">element_text</span>(<span class="at">color =</span> <span class="st">"gray30"</span>, <span class="at">hjust =</span> <span class="fl">0.5</span>),</span>
-<span id="cb6-24"><a href="#cb6-24" aria-hidden="true" tabindex="-1"></a>    <span class="at">panel.grid.minor =</span> <span class="fu">element_blank</span>()</span>
-<span id="cb6-25"><a href="#cb6-25" aria-hidden="true" tabindex="-1"></a>  )</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
-</details>
-<div class="cell-output-display">
-<div>
-<figure class="figure">
-<p><img src="Starting_nflfastr_files/figure-html/unnamed-chunk-5-1.png" class="img-fluid figure-img" width="672"></p>
-</figure>
-</div>
-</div>
-</div>
-<section id="tasks" class="level3" data-number="2.1">
-<h3 data-number="2.1" class="anchored" data-anchor-id="tasks"><span class="header-section-number">2.1</span> Tasks</h3>
-<p>In sports analytics, plays occurring when the win probability is near 0% or 100% (“garbage time”) can skew team metrics. Modify the filtering logic to exclude plays where win probability (wp) &lt; 0.05 or wp &gt; 0.95. How does removing garbage time affect the top 3 offensive teams?</p>
-<div class="cell">
-<details open="" class="code-fold">
-<summary>Show R Code</summary>
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb7"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Student Workspace: Filter out garbage time</span></span>
-<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a>pbp_filtered <span class="ot">&lt;-</span> pbp_w1_4 <span class="sc">|&gt;</span></span>
-<span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(wp <span class="sc">&gt;=</span> <span class="fl">0.05</span> <span class="sc">&amp;</span> wp <span class="sc">&lt;=</span> <span class="fl">0.95</span>)</span>
-<span id="cb7-4"><a href="#cb7-4" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb7-5"><a href="#cb7-5" aria-hidden="true" tabindex="-1"></a><span class="co"># </span><span class="al">TODO</span><span class="co">: Compute updated team summaries and compare results</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb3"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Uncomment if packages are not yet installed:</span></span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a><span class="co"># install.packages(c("tidyverse", "nflfastR", "nflplotR", "gt", "knitr"))</span></span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(tidyverse)</span>
+<span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(nflfastR)</span>
+<span id="cb3-5"><a href="#cb3-5" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(nflplotR)</span>
+<span id="cb3-6"><a href="#cb3-6" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(gt)</span>
+<span id="cb3-7"><a href="#cb3-7" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(knitr)</span>
+<span id="cb3-8"><a href="#cb3-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-9"><a href="#cb3-9" aria-hidden="true" tabindex="-1"></a><span class="co"># Set global option to avoid scientific notation in printouts</span></span>
+<span id="cb3-10"><a href="#cb3-10" aria-hidden="true" tabindex="-1"></a><span class="fu">options</span>(<span class="at">scipen =</span> <span class="dv">999</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </details>
 </div>
 </section>
-<section id="instructor-tips-for-deployment" class="level3" data-number="2.2">
-<h3 data-number="2.2" class="anchored" data-anchor-id="instructor-tips-for-deployment"><span class="header-section-number">2.2</span> Instructor Tips for Deployment</h3>
-<ol type="1">
-<li><strong>Packages:</strong> Make sure students install <code>nflreadr</code> and <code>nflplotR</code> prior to running the lab. <code>nflreadr</code> handles the efficient data fetching underlying <code>nflfastR</code>.</li>
-<li><strong>Quarto Features:</strong> This document utilizes code-folding (<code>code-fold: show</code>), dynamic table styling with <code>gt</code>, and custom ggplot elements provided by <code>nflplotR</code>.</li>
-<li><strong>Data Availability:</strong> <code>nflfastR::load_pbp(2025)</code> fetches cleaned play-by-play data dynamically from <code>nflverse-data</code> releases via GitHub.</li>
-</ol>
+<section id="starting-with-play-by-play-pbp-data" class="level2" data-number="1">
+<h2 data-number="1" class="anchored" data-anchor-id="starting-with-play-by-play-pbp-data"><span class="header-section-number">1</span> Starting with Play by Play (pbp) data</h2>
+<p>In the interest of speed, I’ve only taken regular season data from the first 4 weeks of the 2025 season. Actually, I’ve taken the full 2025 play by play and I’ve</p>
+<div class="cell">
+<details open="" class="code-fold">
+<summary>Show R Code</summary>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb4"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Fetch 2025 play-by-play data</span></span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a>raw_pbp_2025 <span class="ot">&lt;-</span> nflfastR<span class="sc">::</span><span class="fu">load_pbp</span>(<span class="dv">2025</span>)</span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a><span class="co"># Filter for Weeks 1-4 regular season scrimmage plays</span></span>
+<span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a>pbp_w1_4 <span class="ot">&lt;-</span> raw_pbp_2025 <span class="sc">|&gt;</span></span>
+<span id="cb4-6"><a href="#cb4-6" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(</span>
+<span id="cb4-7"><a href="#cb4-7" aria-hidden="true" tabindex="-1"></a>    season_type <span class="sc">==</span> <span class="st">"REG"</span>,</span>
+<span id="cb4-8"><a href="#cb4-8" aria-hidden="true" tabindex="-1"></a>    week <span class="sc">&lt;=</span> <span class="dv">4</span>,</span>
+<span id="cb4-9"><a href="#cb4-9" aria-hidden="true" tabindex="-1"></a>    <span class="sc">!</span><span class="fu">is.na</span>(posteam),                  </span>
+<span id="cb4-10"><a href="#cb4-10" aria-hidden="true" tabindex="-1"></a>    <span class="co"># Ensure there is an offensive team</span></span>
+<span id="cb4-11"><a href="#cb4-11" aria-hidden="true" tabindex="-1"></a>    play_type <span class="sc">%in%</span> <span class="fu">c</span>(<span class="st">"pass"</span>, <span class="st">"run"</span>) <span class="sc">|</span> pass <span class="sc">==</span> <span class="dv">1</span> <span class="sc">|</span> rush <span class="sc">==</span> <span class="dv">1</span>,</span>
+<span id="cb4-12"><a href="#cb4-12" aria-hidden="true" tabindex="-1"></a>    <span class="sc">!</span><span class="fu">is.na</span>(epa)                       <span class="co"># Retain valid EPA values</span></span>
+<span id="cb4-13"><a href="#cb4-13" aria-hidden="true" tabindex="-1"></a>  )</span>
+<span id="cb4-14"><a href="#cb4-14" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-15"><a href="#cb4-15" aria-hidden="true" tabindex="-1"></a><span class="co"># Inspect dataset dimensions</span></span>
+<span id="cb4-16"><a href="#cb4-16" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span>(<span class="st">"Dataset dimensions (rows x cols):"</span>, <span class="fu">dim</span>(pbp_w1_4), <span class="st">"</span><span class="sc">\n</span><span class="st">"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</details>
+</div>
+<p>What variables are available to us</p>
+<div class="cell">
+<details open="" class="code-fold">
+<summary>Show R Code</summary>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb5"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="fu">names</span>(pbp_w1_4)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</details>
+</div>
+<p>Only 370 features/variables per play.</p>
+<p>Let’s take a look at the first 6 rows of these data</p>
+<div class="cell">
+<details open="" class="code-fold">
+<summary>Show R Code</summary>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb6"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="fu">head</span>(pbp_w1_4)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</details>
+</div>
+<p>The next set of code aggregates all of the play by play data by team. We get some variables based upon expected points added (EPA) per play. We do this aggregation by offense and defense then join them back together.</p>
+<div class="cell">
+<details open="" class="code-fold">
+<summary>Show R Code</summary>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb7"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="co">#Offensive Aggregation (posteam)</span></span>
+<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a>offense_summary <span class="ot">&lt;-</span> pbp_w1_4 <span class="sc">|&gt;</span></span>
+<span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">group_by</span>(posteam) <span class="sc">|&gt;</span></span>
+<span id="cb7-4"><a href="#cb7-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">summarize</span>(</span>
+<span id="cb7-5"><a href="#cb7-5" aria-hidden="true" tabindex="-1"></a>    <span class="at">off_plays =</span> <span class="fu">n</span>(),</span>
+<span id="cb7-6"><a href="#cb7-6" aria-hidden="true" tabindex="-1"></a>    <span class="at">off_epa_per_play =</span> <span class="fu">mean</span>(epa, <span class="at">na.rm =</span> <span class="cn">TRUE</span>),</span>
+<span id="cb7-7"><a href="#cb7-7" aria-hidden="true" tabindex="-1"></a>    <span class="at">pass_epa =</span> <span class="fu">mean</span>(epa[pass <span class="sc">==</span> <span class="dv">1</span>], <span class="at">na.rm =</span> <span class="cn">TRUE</span>),</span>
+<span id="cb7-8"><a href="#cb7-8" aria-hidden="true" tabindex="-1"></a>    <span class="at">rush_epa =</span> <span class="fu">mean</span>(epa[rush <span class="sc">==</span> <span class="dv">1</span>], <span class="at">na.rm =</span> <span class="cn">TRUE</span>),</span>
+<span id="cb7-9"><a href="#cb7-9" aria-hidden="true" tabindex="-1"></a>    <span class="at">off_success_rate =</span> <span class="fu">mean</span>(success, <span class="at">na.rm =</span> <span class="cn">TRUE</span>),</span>
+<span id="cb7-10"><a href="#cb7-10" aria-hidden="true" tabindex="-1"></a>    <span class="at">dropback_pct =</span> <span class="fu">mean</span>(pass <span class="sc">==</span> <span class="dv">1</span>, <span class="at">na.rm =</span> <span class="cn">TRUE</span>),</span>
+<span id="cb7-11"><a href="#cb7-11" aria-hidden="true" tabindex="-1"></a>    <span class="at">.groups =</span> <span class="st">"drop"</span></span>
+<span id="cb7-12"><a href="#cb7-12" aria-hidden="true" tabindex="-1"></a>  )</span>
+<span id="cb7-13"><a href="#cb7-13" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb7-14"><a href="#cb7-14" aria-hidden="true" tabindex="-1"></a><span class="co"># Defensive Aggregation (defteam)</span></span>
+<span id="cb7-15"><a href="#cb7-15" aria-hidden="true" tabindex="-1"></a>defense_summary <span class="ot">&lt;-</span> pbp_w1_4 <span class="sc">|&gt;</span></span>
+<span id="cb7-16"><a href="#cb7-16" aria-hidden="true" tabindex="-1"></a>  <span class="fu">group_by</span>(defteam) <span class="sc">|&gt;</span></span>
+<span id="cb7-17"><a href="#cb7-17" aria-hidden="true" tabindex="-1"></a>  <span class="fu">summarize</span>(</span>
+<span id="cb7-18"><a href="#cb7-18" aria-hidden="true" tabindex="-1"></a>    <span class="at">def_plays =</span> <span class="fu">n</span>(),</span>
+<span id="cb7-19"><a href="#cb7-19" aria-hidden="true" tabindex="-1"></a>    <span class="at">def_epa_allowed =</span> <span class="fu">mean</span>(epa, <span class="at">na.rm =</span> <span class="cn">TRUE</span>),</span>
+<span id="cb7-20"><a href="#cb7-20" aria-hidden="true" tabindex="-1"></a>    <span class="at">def_pass_epa_allowed =</span> <span class="fu">mean</span>(epa[pass <span class="sc">==</span> <span class="dv">1</span>], <span class="at">na.rm =</span> <span class="cn">TRUE</span>),</span>
+<span id="cb7-21"><a href="#cb7-21" aria-hidden="true" tabindex="-1"></a>    <span class="at">def_rush_epa_allowed =</span> <span class="fu">mean</span>(epa[rush <span class="sc">==</span> <span class="dv">1</span>], <span class="at">na.rm =</span> <span class="cn">TRUE</span>),</span>
+<span id="cb7-22"><a href="#cb7-22" aria-hidden="true" tabindex="-1"></a>    <span class="at">def_success_rate_allowed =</span> <span class="fu">mean</span>(success, <span class="at">na.rm =</span> <span class="cn">TRUE</span>),</span>
+<span id="cb7-23"><a href="#cb7-23" aria-hidden="true" tabindex="-1"></a>    <span class="at">.groups =</span> <span class="st">"drop"</span></span>
+<span id="cb7-24"><a href="#cb7-24" aria-hidden="true" tabindex="-1"></a>  )</span>
+<span id="cb7-25"><a href="#cb7-25" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb7-26"><a href="#cb7-26" aria-hidden="true" tabindex="-1"></a><span class="co"># Join Offense &amp; Defense into a single Master Team Summary</span></span>
+<span id="cb7-27"><a href="#cb7-27" aria-hidden="true" tabindex="-1"></a>team_summary <span class="ot">&lt;-</span> offense_summary <span class="sc">|&gt;</span></span>
+<span id="cb7-28"><a href="#cb7-28" aria-hidden="true" tabindex="-1"></a>  <span class="fu">inner_join</span>(defense_summary, <span class="at">by =</span> <span class="fu">c</span>(<span class="st">"posteam"</span> <span class="ot">=</span> <span class="st">"defteam"</span>)) <span class="sc">|&gt;</span></span>
+<span id="cb7-29"><a href="#cb7-29" aria-hidden="true" tabindex="-1"></a>  <span class="fu">rename</span>(<span class="at">team =</span> posteam) <span class="sc">|&gt;</span></span>
+<span id="cb7-30"><a href="#cb7-30" aria-hidden="true" tabindex="-1"></a>  <span class="fu">arrange</span>(<span class="fu">desc</span>(off_epa_per_play)) </span>
+<span id="cb7-31"><a href="#cb7-31" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb7-32"><a href="#cb7-32" aria-hidden="true" tabindex="-1"></a><span class="co"># Display top 5 teams by Offensive EPA</span></span>
+<span id="cb7-33"><a href="#cb7-33" aria-hidden="true" tabindex="-1"></a><span class="fu">head</span>(team_summary, <span class="dv">5</span>) <span class="sc">|&gt;</span> <span class="fu">kable</span>()</span>
+<span id="cb7-34"><a href="#cb7-34" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb7-35"><a href="#cb7-35" aria-hidden="true" tabindex="-1"></a><span class="co">#Display top 6 teams by Defenseive EPA</span></span>
+<span id="cb7-36"><a href="#cb7-36" aria-hidden="true" tabindex="-1"></a>team_summary<span class="ot">&lt;-</span> team_summary <span class="sc">|&gt;</span></span>
+<span id="cb7-37"><a href="#cb7-37" aria-hidden="true" tabindex="-1"></a>  <span class="fu">arrange</span>(def_epa_allowed)</span>
+<span id="cb7-38"><a href="#cb7-38" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb7-39"><a href="#cb7-39" aria-hidden="true" tabindex="-1"></a><span class="fu">head</span>(team_summary, <span class="dv">6</span>) <span class="sc">|&gt;</span> <span class="fu">kable</span> (<span class="at">digits=</span><span class="dv">3</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</details>
+</div>
+<p>From the data above, which was the third best team on offensive EPA/play from these data?</p>
+<p>Let’s make a better table.</p>
+<div class="cell">
+<details open="" class="code-fold">
+<summary>Show R Code</summary>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb8"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="co">#reorder the data for the plot below</span></span>
+<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a>team_summary<span class="ot">&lt;-</span> team_summary <span class="sc">|&gt;</span></span>
+<span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">arrange</span>(<span class="fu">desc</span>(off_epa_per_play))</span>
+<span id="cb8-4"><a href="#cb8-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-5"><a href="#cb8-5" aria-hidden="true" tabindex="-1"></a><span class="co"># create a pretty table with some coloring</span></span>
+<span id="cb8-6"><a href="#cb8-6" aria-hidden="true" tabindex="-1"></a>team_summary <span class="sc">|&gt;</span></span>
+<span id="cb8-7"><a href="#cb8-7" aria-hidden="true" tabindex="-1"></a>  <span class="fu">gt</span>() <span class="sc">|&gt;</span></span>
+<span id="cb8-8"><a href="#cb8-8" aria-hidden="true" tabindex="-1"></a>  <span class="fu">tab_header</span>(</span>
+<span id="cb8-9"><a href="#cb8-9" aria-hidden="true" tabindex="-1"></a>    <span class="at">title =</span> <span class="fu">md</span>(<span class="st">"**NFL Team Performance Summary: 2025 (Weeks 1–4)**"</span>),</span>
+<span id="cb8-10"><a href="#cb8-10" aria-hidden="true" tabindex="-1"></a>    <span class="at">subtitle =</span> <span class="st">"Offensive and Defensive Efficiency Metrics Calculated via nflfastR"</span></span>
+<span id="cb8-11"><a href="#cb8-11" aria-hidden="true" tabindex="-1"></a>  ) <span class="sc">|&gt;</span></span>
+<span id="cb8-12"><a href="#cb8-12" aria-hidden="true" tabindex="-1"></a>  <span class="fu">cols_label</span>(</span>
+<span id="cb8-13"><a href="#cb8-13" aria-hidden="true" tabindex="-1"></a>    <span class="at">team =</span> <span class="st">"Team"</span>,</span>
+<span id="cb8-14"><a href="#cb8-14" aria-hidden="true" tabindex="-1"></a>    <span class="at">off_plays =</span> <span class="st">"Off. Plays"</span>,</span>
+<span id="cb8-15"><a href="#cb8-15" aria-hidden="true" tabindex="-1"></a>    <span class="at">off_epa_per_play =</span> <span class="st">"Off EPA/Play"</span>,</span>
+<span id="cb8-16"><a href="#cb8-16" aria-hidden="true" tabindex="-1"></a>    <span class="at">pass_epa =</span> <span class="st">"Pass EPA"</span>,</span>
+<span id="cb8-17"><a href="#cb8-17" aria-hidden="true" tabindex="-1"></a>    <span class="at">rush_epa =</span> <span class="st">"Rush EPA"</span>,</span>
+<span id="cb8-18"><a href="#cb8-18" aria-hidden="true" tabindex="-1"></a>    <span class="at">off_success_rate =</span> <span class="st">"Off. Success Rate"</span>,</span>
+<span id="cb8-19"><a href="#cb8-19" aria-hidden="true" tabindex="-1"></a>    <span class="at">dropback_pct =</span> <span class="st">"Pass Rate"</span>,</span>
+<span id="cb8-20"><a href="#cb8-20" aria-hidden="true" tabindex="-1"></a>    <span class="at">def_epa_allowed =</span> <span class="st">"Def EPA/Play"</span>,</span>
+<span id="cb8-21"><a href="#cb8-21" aria-hidden="true" tabindex="-1"></a>    <span class="at">def_success_rate_allowed =</span> <span class="st">"Def. Success Rate"</span></span>
+<span id="cb8-22"><a href="#cb8-22" aria-hidden="true" tabindex="-1"></a>  ) <span class="sc">|&gt;</span></span>
+<span id="cb8-23"><a href="#cb8-23" aria-hidden="true" tabindex="-1"></a>  <span class="fu">cols_hide</span>(<span class="at">columns =</span> <span class="fu">c</span>(def_plays, def_pass_epa_allowed, def_rush_epa_allowed)) <span class="sc">|&gt;</span></span>
+<span id="cb8-24"><a href="#cb8-24" aria-hidden="true" tabindex="-1"></a>  <span class="fu">fmt_number</span>(</span>
+<span id="cb8-25"><a href="#cb8-25" aria-hidden="true" tabindex="-1"></a>    <span class="at">columns =</span> <span class="fu">c</span>(off_epa_per_play, pass_epa, rush_epa, def_epa_allowed),</span>
+<span id="cb8-26"><a href="#cb8-26" aria-hidden="true" tabindex="-1"></a>    <span class="at">decimals =</span> <span class="dv">3</span></span>
+<span id="cb8-27"><a href="#cb8-27" aria-hidden="true" tabindex="-1"></a>  ) <span class="sc">|&gt;</span></span>
+<span id="cb8-28"><a href="#cb8-28" aria-hidden="true" tabindex="-1"></a>  <span class="fu">fmt_percent</span>(</span>
+<span id="cb8-29"><a href="#cb8-29" aria-hidden="true" tabindex="-1"></a>    <span class="at">columns =</span> <span class="fu">c</span>(off_success_rate, dropback_pct, def_success_rate_allowed),</span>
+<span id="cb8-30"><a href="#cb8-30" aria-hidden="true" tabindex="-1"></a>    <span class="at">decimals =</span> <span class="dv">1</span></span>
+<span id="cb8-31"><a href="#cb8-31" aria-hidden="true" tabindex="-1"></a>  ) <span class="sc">|&gt;</span></span>
+<span id="cb8-32"><a href="#cb8-32" aria-hidden="true" tabindex="-1"></a>  <span class="fu">data_color</span>(</span>
+<span id="cb8-33"><a href="#cb8-33" aria-hidden="true" tabindex="-1"></a>    <span class="at">columns =</span> off_epa_per_play,</span>
+<span id="cb8-34"><a href="#cb8-34" aria-hidden="true" tabindex="-1"></a>    <span class="at">palette =</span> <span class="fu">c</span>(<span class="st">"#f87171"</span>, <span class="st">"#ffffff"</span>, <span class="st">"#4ade80"</span>)</span>
+<span id="cb8-35"><a href="#cb8-35" aria-hidden="true" tabindex="-1"></a>  ) <span class="sc">|&gt;</span></span>
+<span id="cb8-36"><a href="#cb8-36" aria-hidden="true" tabindex="-1"></a>  <span class="fu">tab_source_note</span>(</span>
+<span id="cb8-37"><a href="#cb8-37" aria-hidden="true" tabindex="-1"></a>    <span class="at">source_note =</span> <span class="st">"Data Source: nflfastR | Scrimmage plays only (Weeks 1–4, 2025)"</span></span>
+<span id="cb8-38"><a href="#cb8-38" aria-hidden="true" tabindex="-1"></a>  )</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</details>
+</div>
+<p>Let’s visualize some of these data.</p>
+<div class="cell">
+<details open="" class="code-fold">
+<summary>Show R Code</summary>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb9"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Compute tier averages for reference lines</span></span>
+<span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a>avg_off_epa <span class="ot">&lt;-</span> <span class="fu">mean</span>(team_summary<span class="sc">$</span>off_epa_per_play, <span class="at">na.rm =</span> <span class="cn">TRUE</span>)</span>
+<span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a>avg_def_epa <span class="ot">&lt;-</span> <span class="fu">mean</span>(team_summary<span class="sc">$</span>def_epa_allowed, <span class="at">na.rm =</span> <span class="cn">TRUE</span>)</span>
+<span id="cb9-4"><a href="#cb9-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-5"><a href="#cb9-5" aria-hidden="true" tabindex="-1"></a><span class="fu">ggplot</span>(team_summary, <span class="fu">aes</span>(<span class="at">x =</span> off_epa_per_play, <span class="at">y =</span> def_epa_allowed)) <span class="sc">+</span></span>
+<span id="cb9-6"><a href="#cb9-6" aria-hidden="true" tabindex="-1"></a>  <span class="co"># Quadrant Mean Lines</span></span>
+<span id="cb9-7"><a href="#cb9-7" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_hline</span>(<span class="at">yintercept =</span> avg_def_epa, <span class="at">linetype =</span> <span class="st">"dashed"</span>, <span class="at">color =</span> <span class="st">"gray50"</span>, <span class="at">linewidth =</span> <span class="fl">0.6</span>) <span class="sc">+</span></span>
+<span id="cb9-8"><a href="#cb9-8" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_vline</span>(<span class="at">xintercept =</span> avg_off_epa, <span class="at">linetype =</span> <span class="st">"dashed"</span>, <span class="at">color =</span> <span class="st">"gray50"</span>, <span class="at">linewidth =</span> <span class="fl">0.6</span>) <span class="sc">+</span></span>
+<span id="cb9-9"><a href="#cb9-9" aria-hidden="true" tabindex="-1"></a>  <span class="co"># Official NFL Team Logos</span></span>
+<span id="cb9-10"><a href="#cb9-10" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_nfl_logos</span>(<span class="fu">aes</span>(<span class="at">team_abbr =</span> team), <span class="at">width =</span> <span class="fl">0.055</span>, <span class="at">alpha =</span> <span class="fl">0.9</span>) <span class="sc">+</span></span>
+<span id="cb9-11"><a href="#cb9-11" aria-hidden="true" tabindex="-1"></a>  <span class="co"># Invert Y-axis so lower EPA allowed (better defense) is higher up</span></span>
+<span id="cb9-12"><a href="#cb9-12" aria-hidden="true" tabindex="-1"></a>  <span class="fu">scale_y_reverse</span>() <span class="sc">+</span></span>
+<span id="cb9-13"><a href="#cb9-13" aria-hidden="true" tabindex="-1"></a>  <span class="fu">labs</span>(</span>
+<span id="cb9-14"><a href="#cb9-14" aria-hidden="true" tabindex="-1"></a>    <span class="at">title =</span> <span class="st">"2025 NFL Team Tier Breakdown (Weeks 1–4)"</span>,</span>
+<span id="cb9-15"><a href="#cb9-15" aria-hidden="true" tabindex="-1"></a>    <span class="at">subtitle =</span> <span class="st">"Offensive Efficiency vs. Defensive Efficiency"</span>,</span>
+<span id="cb9-16"><a href="#cb9-16" aria-hidden="true" tabindex="-1"></a>    <span class="at">x =</span> <span class="st">"Offensive EPA per Play (Higher = Better Offense)"</span>,</span>
+<span id="cb9-17"><a href="#cb9-17" aria-hidden="true" tabindex="-1"></a>    <span class="at">y =</span> <span class="st">"Defensive EPA per Play Allowed (Lower = Better Defense)"</span>,</span>
+<span id="cb9-18"><a href="#cb9-18" aria-hidden="true" tabindex="-1"></a>    <span class="at">caption =</span> <span class="st">"Chart: Senior Data Science | Data: nflfastR"</span></span>
+<span id="cb9-19"><a href="#cb9-19" aria-hidden="true" tabindex="-1"></a>  ) <span class="sc">+</span></span>
+<span id="cb9-20"><a href="#cb9-20" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme_minimal</span>(<span class="at">base_size =</span> <span class="dv">13</span>) <span class="sc">+</span></span>
+<span id="cb9-21"><a href="#cb9-21" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme</span>(</span>
+<span id="cb9-22"><a href="#cb9-22" aria-hidden="true" tabindex="-1"></a>    <span class="at">plot.title =</span> <span class="fu">element_text</span>(<span class="at">face =</span> <span class="st">"bold"</span>, <span class="at">size =</span> <span class="dv">16</span>, <span class="at">hjust =</span> <span class="fl">0.5</span>),</span>
+<span id="cb9-23"><a href="#cb9-23" aria-hidden="true" tabindex="-1"></a>    <span class="at">plot.subtitle =</span> <span class="fu">element_text</span>(<span class="at">color =</span> <span class="st">"gray30"</span>, <span class="at">hjust =</span> <span class="fl">0.5</span>),</span>
+<span id="cb9-24"><a href="#cb9-24" aria-hidden="true" tabindex="-1"></a>    <span class="at">panel.grid.minor =</span> <span class="fu">element_blank</span>()</span>
+<span id="cb9-25"><a href="#cb9-25" aria-hidden="true" tabindex="-1"></a>  )</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</details>
+</div>
+<p>Note that the plot above has an unusual y-axis. Why is that?</p>
 </section>
+<section id="tasks" class="level2" data-number="2">
+<h2 data-number="2" class="anchored" data-anchor-id="tasks"><span class="header-section-number">2</span> Tasks</h2>
+<p>In sports analytics, plays occurring when the win probability is near 0% or 100% (“garbage time”) can skew team metrics. Modify the filtering logic to exclude plays where win probability &lt; 0.05 or &gt; 0.95. How does removing garbage time affect the top 3 offensive teams?</p>
+<section id="task-1" class="level3" data-number="2.1">
+<h3 data-number="2.1" class="anchored" data-anchor-id="task-1"><span class="header-section-number">2.1</span> Task 1</h3>
+<div class="cell">
+<details open="" class="code-fold">
+<summary>Show R Code</summary>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb10"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Student Workspace: Filter out garbage time</span></span>
+<span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-3"><a href="#cb10-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-4"><a href="#cb10-4" aria-hidden="true" tabindex="-1"></a><span class="co"># </span><span class="al">TODO</span><span class="co">: Compute updated team summaries and compare results</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</details>
+</div>
+</section>
+<section id="task-2" class="level3" data-number="2.2">
+<h3 data-number="2.2" class="anchored" data-anchor-id="task-2"><span class="header-section-number">2.2</span> Task 2</h3>
+<p>Is this the best definition of garbage time? How might you define garbage time?</p>
+</section>
+</section>
+<section id="drive-summary-data" class="level2" data-number="3">
+<h2 data-number="3" class="anchored" data-anchor-id="drive-summary-data"><span class="header-section-number">3</span> Drive summary data</h2>
+<p>So we are going back to the play by play data from 2025 and now we are going to look at some drive summaries.</p>
+<div class="cell">
+<details open="" class="code-fold">
+<summary>Show R Code</summary>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb11"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a>pbp_clean <span class="ot">&lt;-</span> pbp_w1_4 <span class="sc">%&gt;%</span></span>
+<span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(</span>
+<span id="cb11-3"><a href="#cb11-3" aria-hidden="true" tabindex="-1"></a>    <span class="sc">!</span><span class="fu">is.na</span>(drive),</span>
+<span id="cb11-4"><a href="#cb11-4" aria-hidden="true" tabindex="-1"></a>    <span class="sc">!</span><span class="fu">is.na</span>(epa),</span>
+<span id="cb11-5"><a href="#cb11-5" aria-hidden="true" tabindex="-1"></a>    play <span class="sc">==</span> <span class="dv">1</span>,                       <span class="co"># Excludes non-play events / dead-ball fouls</span></span>
+<span id="cb11-6"><a href="#cb11-6" aria-hidden="true" tabindex="-1"></a>    play_type <span class="sc">%in%</span> <span class="fu">c</span>(<span class="st">"run"</span>, <span class="st">"pass"</span>)  <span class="co"># Restricts to offensive play attempts</span></span>
+<span id="cb11-7"><a href="#cb11-7" aria-hidden="true" tabindex="-1"></a>  )</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</details>
+</div>
+<p>Next we group the data and since drives are numbered from the beginning of each game, we have to group by game and drive.</p>
+<div class="cell">
+<details open="" class="code-fold">
+<summary>Show R Code</summary>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb12"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a>drive_level_data <span class="ot">&lt;-</span> pbp_clean <span class="sc">%&gt;%</span></span>
+<span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">group_by</span>(game_id, drive, posteam, defteam) <span class="sc">%&gt;%</span></span>
+<span id="cb12-3"><a href="#cb12-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">summarize</span>(</span>
+<span id="cb12-4"><a href="#cb12-4" aria-hidden="true" tabindex="-1"></a>    <span class="at">drive_total_epa =</span> <span class="fu">sum</span>(epa, <span class="at">na.rm =</span> <span class="cn">TRUE</span>),</span>
+<span id="cb12-5"><a href="#cb12-5" aria-hidden="true" tabindex="-1"></a>    <span class="at">drive_mean_epa  =</span> <span class="fu">mean</span>(epa, <span class="at">na.rm =</span> <span class="cn">TRUE</span>),</span>
+<span id="cb12-6"><a href="#cb12-6" aria-hidden="true" tabindex="-1"></a>    <span class="at">play_count      =</span> <span class="fu">n</span>(),</span>
+<span id="cb12-7"><a href="#cb12-7" aria-hidden="true" tabindex="-1"></a>    <span class="at">drive_result    =</span> <span class="fu">first</span>(fixed_drive_result),</span>
+<span id="cb12-8"><a href="#cb12-8" aria-hidden="true" tabindex="-1"></a>    <span class="at">.groups =</span> <span class="st">"drop"</span></span>
+<span id="cb12-9"><a href="#cb12-9" aria-hidden="true" tabindex="-1"></a>  )</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</details>
+</div>
+<p>Next take the drive level data and get some offensive and defensive summaries</p>
+<div class="cell">
+<details open="" class="code-fold">
+<summary>Show R Code</summary>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb13"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a>offense_drive_summary <span class="ot">&lt;-</span> drive_level_data <span class="sc">%&gt;%</span></span>
+<span id="cb13-2"><a href="#cb13-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(<span class="sc">!</span><span class="fu">is.na</span>(posteam)) <span class="sc">%&gt;%</span></span>
+<span id="cb13-3"><a href="#cb13-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">group_by</span>(posteam) <span class="sc">%&gt;%</span></span>
+<span id="cb13-4"><a href="#cb13-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">summarize</span>(</span>
+<span id="cb13-5"><a href="#cb13-5" aria-hidden="true" tabindex="-1"></a>    <span class="at">drives           =</span> <span class="fu">n</span>(),</span>
+<span id="cb13-6"><a href="#cb13-6" aria-hidden="true" tabindex="-1"></a>    <span class="at">mean_drive_epa   =</span> <span class="fu">mean</span>(drive_total_epa, <span class="at">na.rm =</span> <span class="cn">TRUE</span>),</span>
+<span id="cb13-7"><a href="#cb13-7" aria-hidden="true" tabindex="-1"></a>    <span class="at">median_drive_epa =</span> <span class="fu">median</span>(drive_total_epa, <span class="at">na.rm =</span> <span class="cn">TRUE</span>),</span>
+<span id="cb13-8"><a href="#cb13-8" aria-hidden="true" tabindex="-1"></a>    <span class="at">total_off_epa    =</span> <span class="fu">sum</span>(drive_total_epa, <span class="at">na.rm =</span> <span class="cn">TRUE</span>),</span>
+<span id="cb13-9"><a href="#cb13-9" aria-hidden="true" tabindex="-1"></a>    <span class="at">avg_plays_per_dr =</span> <span class="fu">mean</span>(play_count, <span class="at">na.rm =</span> <span class="cn">TRUE</span>)</span>
+<span id="cb13-10"><a href="#cb13-10" aria-hidden="true" tabindex="-1"></a>  ) <span class="sc">%&gt;%</span></span>
+<span id="cb13-11"><a href="#cb13-11" aria-hidden="true" tabindex="-1"></a>  <span class="fu">arrange</span>(<span class="fu">desc</span>(mean_drive_epa))</span>
+<span id="cb13-12"><a href="#cb13-12" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb13-13"><a href="#cb13-13" aria-hidden="true" tabindex="-1"></a><span class="fu">head</span>(offense_drive_summary, <span class="dv">6</span>) <span class="sc">|&gt;</span> <span class="fu">kable</span> (<span class="at">digits=</span><span class="dv">3</span>)</span>
+<span id="cb13-14"><a href="#cb13-14" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb13-15"><a href="#cb13-15" aria-hidden="true" tabindex="-1"></a>defense_drive_summary <span class="ot">&lt;-</span> drive_level_data <span class="sc">%&gt;%</span></span>
+<span id="cb13-16"><a href="#cb13-16" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(<span class="sc">!</span><span class="fu">is.na</span>(defteam)) <span class="sc">%&gt;%</span></span>
+<span id="cb13-17"><a href="#cb13-17" aria-hidden="true" tabindex="-1"></a>  <span class="fu">group_by</span>(defteam) <span class="sc">%&gt;%</span></span>
+<span id="cb13-18"><a href="#cb13-18" aria-hidden="true" tabindex="-1"></a>  <span class="fu">summarize</span>(</span>
+<span id="cb13-19"><a href="#cb13-19" aria-hidden="true" tabindex="-1"></a>    <span class="at">drives_def        =</span> <span class="fu">n</span>(),</span>
+<span id="cb13-20"><a href="#cb13-20" aria-hidden="true" tabindex="-1"></a>    <span class="at">mean_epa_allowed  =</span> <span class="fu">mean</span>(drive_total_epa, <span class="at">na.rm =</span> <span class="cn">TRUE</span>),</span>
+<span id="cb13-21"><a href="#cb13-21" aria-hidden="true" tabindex="-1"></a>    <span class="at">median_epa_allow  =</span> <span class="fu">median</span>(drive_total_epa, <span class="at">na.rm =</span> <span class="cn">TRUE</span>),</span>
+<span id="cb13-22"><a href="#cb13-22" aria-hidden="true" tabindex="-1"></a>    <span class="at">total_def_epa     =</span> <span class="fu">sum</span>(drive_total_epa, <span class="at">na.rm =</span> <span class="cn">TRUE</span>),</span>
+<span id="cb13-23"><a href="#cb13-23" aria-hidden="true" tabindex="-1"></a>    <span class="at">avg_plays_allowed =</span> <span class="fu">mean</span>(play_count, <span class="at">na.rm =</span> <span class="cn">TRUE</span>)</span>
+<span id="cb13-24"><a href="#cb13-24" aria-hidden="true" tabindex="-1"></a>  ) <span class="sc">%&gt;%</span></span>
+<span id="cb13-25"><a href="#cb13-25" aria-hidden="true" tabindex="-1"></a>  <span class="fu">arrange</span>(mean_epa_allowed) <span class="co"># Lower/negative EPA allowed indicates higher defensive</span></span>
+<span id="cb13-26"><a href="#cb13-26" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb13-27"><a href="#cb13-27" aria-hidden="true" tabindex="-1"></a><span class="fu">head</span>(defense_drive_summary, <span class="dv">6</span>) <span class="sc">|&gt;</span> <span class="fu">kable</span> (<span class="at">digits=</span><span class="dv">3</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</details>
+</div>
+<section id="task-3" class="level3" data-number="3.1">
+<h3 data-number="3.1" class="anchored" data-anchor-id="task-3"><span class="header-section-number">3.1</span> Task 3</h3>
+<p>Find another metric, not EPA, and calculate the summaries (mean, median, sum) for each drive in the <em>raw_pbp_2025</em> dataset. Then do it for only pass plays. Which team was the best on your metric for all plays? for only pass plays?</p>
+</section>
+</section>
+<section id="college-football-data" class="level2" data-number="4">
+<h2 data-number="4" class="anchored" data-anchor-id="college-football-data"><span class="header-section-number">4</span> College Football Data</h2>
+<p>Below we do some practice with loading, summarizing and visualizing the college football data.</p>
+<p>Using <code>cfbfastr::load_cfb_pbp()</code> fetches pre-processed play-by-play data directly without requiring API key authentication. We aggregate play-level yardage to quantify offensive and defensive Yards Per Play (YPP) across the 2025 season.</p>
+<div class="cell">
+<details open="" class="code-fold">
+<summary>Show R Code</summary>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb14"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(cfbfastR)</span>
+<span id="cb14-2"><a href="#cb14-2" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(ggrepel)</span>
+<span id="cb14-3"><a href="#cb14-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb14-4"><a href="#cb14-4" aria-hidden="true" tabindex="-1"></a><span class="co"># Load full 2024 play-by-play dataset</span></span>
+<span id="cb14-5"><a href="#cb14-5" aria-hidden="true" tabindex="-1"></a>pbp_2025 <span class="ot">&lt;-</span> <span class="fu">load_cfb_pbp</span>(<span class="dv">2025</span>) <span class="sc">|&gt;</span></span>
+<span id="cb14-6"><a href="#cb14-6" aria-hidden="true" tabindex="-1"></a>   <span class="fu">filter</span>(home_team_division<span class="sc">==</span><span class="st">"fbs"</span> <span class="sc">&amp;</span> away_team_division<span class="sc">==</span><span class="st">"fbs"</span>)<span class="sc">|&gt;</span></span>
+<span id="cb14-7"><a href="#cb14-7" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(rush <span class="sc">==</span> <span class="dv">1</span> <span class="sc">|</span> pass <span class="sc">==</span> <span class="dv">1</span>, <span class="sc">!</span><span class="fu">is.na</span>(yards_gained)) </span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</details>
+</div>
+<p>Note pbp for all college is a big file and includes teams from FBS, FCS, D2 and D3. We’re only interested in FBS v FBS games today.</p>
+<p>Below we get the yards per play gained for offenses.</p>
+<div class="cell">
+<details open="" class="code-fold">
+<summary>Show R Code</summary>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb15"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Compute offensive YPP by team</span></span>
+<span id="cb15-2"><a href="#cb15-2" aria-hidden="true" tabindex="-1"></a>off_ypp <span class="ot">&lt;-</span> pbp_2025 <span class="sc">|&gt;</span></span>
+<span id="cb15-3"><a href="#cb15-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">group_by</span>(<span class="at">team =</span> offense_play, <span class="at">conference =</span> offense_conference) <span class="sc">|&gt;</span></span>
+<span id="cb15-4"><a href="#cb15-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">summarize</span>(</span>
+<span id="cb15-5"><a href="#cb15-5" aria-hidden="true" tabindex="-1"></a>    <span class="at">off_plays =</span> <span class="fu">n</span>(),</span>
+<span id="cb15-6"><a href="#cb15-6" aria-hidden="true" tabindex="-1"></a>    <span class="at">off_ypp =</span> <span class="fu">mean</span>(yards_gained),</span>
+<span id="cb15-7"><a href="#cb15-7" aria-hidden="true" tabindex="-1"></a>    <span class="at">.groups =</span> <span class="st">"drop"</span></span>
+<span id="cb15-8"><a href="#cb15-8" aria-hidden="true" tabindex="-1"></a>  ) <span class="sc">|&gt;</span></span>
+<span id="cb15-9"><a href="#cb15-9" aria-hidden="true" tabindex="-1"></a>  <span class="fu">arrange</span>(<span class="fu">desc</span>(off_ypp)) </span>
+<span id="cb15-10"><a href="#cb15-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb15-11"><a href="#cb15-11" aria-hidden="true" tabindex="-1"></a><span class="co"># Lets look at who is `best` on this metric</span></span>
+<span id="cb15-12"><a href="#cb15-12" aria-hidden="true" tabindex="-1"></a><span class="fu">head</span>(off_ypp,<span class="dv">15</span>)<span class="sc">|&gt;</span><span class="fu">kable</span>(<span class="at">digits=</span><span class="dv">2</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</details>
+</div>
+<p>Below we get the yards per play gained against defenses.</p>
+<div class="cell">
+<details open="" class="code-fold">
+<summary>Show R Code</summary>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb16"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Compute defensive YPP allowed by team</span></span>
+<span id="cb16-2"><a href="#cb16-2" aria-hidden="true" tabindex="-1"></a>def_ypp <span class="ot">&lt;-</span> pbp_2025 <span class="sc">|&gt;</span></span>
+<span id="cb16-3"><a href="#cb16-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">group_by</span>(<span class="at">team =</span> defense_play) <span class="sc">|&gt;</span></span>
+<span id="cb16-4"><a href="#cb16-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">summarize</span>(</span>
+<span id="cb16-5"><a href="#cb16-5" aria-hidden="true" tabindex="-1"></a>    <span class="at">def_plays =</span> <span class="fu">n</span>(),</span>
+<span id="cb16-6"><a href="#cb16-6" aria-hidden="true" tabindex="-1"></a>    <span class="at">def_ypp =</span> <span class="fu">mean</span>(yards_gained),</span>
+<span id="cb16-7"><a href="#cb16-7" aria-hidden="true" tabindex="-1"></a>    <span class="at">.groups =</span> <span class="st">"drop"</span></span>
+<span id="cb16-8"><a href="#cb16-8" aria-hidden="true" tabindex="-1"></a>  )<span class="sc">|&gt;</span></span>
+<span id="cb16-9"><a href="#cb16-9" aria-hidden="true" tabindex="-1"></a>  <span class="fu">arrange</span>(def_ypp) </span>
+<span id="cb16-10"><a href="#cb16-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-11"><a href="#cb16-11" aria-hidden="true" tabindex="-1"></a><span class="co"># Lets look at who is best</span></span>
+<span id="cb16-12"><a href="#cb16-12" aria-hidden="true" tabindex="-1"></a><span class="fu">head</span>(def_ypp,<span class="dv">15</span>)<span class="sc">|&gt;</span><span class="fu">kable</span>(<span class="at">digits=</span><span class="dv">2</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</details>
+</div>
+<p>Below we join and classify the teams into tiers.</p>
+<div class="cell">
+<details open="" class="code-fold">
+<summary>Show R Code</summary>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb17"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb17-1"><a href="#cb17-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Join metrics and classify into performance tiers</span></span>
+<span id="cb17-2"><a href="#cb17-2" aria-hidden="true" tabindex="-1"></a>all_ypp <span class="ot">&lt;-</span> off_ypp <span class="sc">|&gt;</span></span>
+<span id="cb17-3"><a href="#cb17-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">inner_join</span>(def_ypp, <span class="at">by =</span> <span class="st">"team"</span>) <span class="sc">|&gt;</span></span>
+<span id="cb17-4"><a href="#cb17-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(</span>
+<span id="cb17-5"><a href="#cb17-5" aria-hidden="true" tabindex="-1"></a>    <span class="at">net_ypp =</span> off_ypp <span class="sc">-</span> def_ypp,</span>
+<span id="cb17-6"><a href="#cb17-6" aria-hidden="true" tabindex="-1"></a>    <span class="at">tier =</span> <span class="fu">case_when</span>(</span>
+<span id="cb17-7"><a href="#cb17-7" aria-hidden="true" tabindex="-1"></a>      off_ypp <span class="sc">&gt;</span> <span class="fu">mean</span>(off_ypp) <span class="sc">&amp;</span> def_ypp <span class="sc">&lt;</span> <span class="fu">mean</span>(def_ypp) <span class="sc">~</span> <span class="st">"Elite"</span>,</span>
+<span id="cb17-8"><a href="#cb17-8" aria-hidden="true" tabindex="-1"></a>      off_ypp <span class="sc">&gt;</span> <span class="fu">mean</span>(off_ypp) <span class="sc">&amp;</span> def_ypp <span class="sc">&gt;=</span> <span class="fu">mean</span>(def_ypp) <span class="sc">~</span> <span class="st">"High Offense / Low Defense"</span>,</span>
+<span id="cb17-9"><a href="#cb17-9" aria-hidden="true" tabindex="-1"></a>      off_ypp <span class="sc">&lt;=</span> <span class="fu">mean</span>(off_ypp) <span class="sc">&amp;</span> def_ypp <span class="sc">&lt;</span> <span class="fu">mean</span>(def_ypp) <span class="sc">~</span> <span class="st">"Low Offense / High Defense"</span>,</span>
+<span id="cb17-10"><a href="#cb17-10" aria-hidden="true" tabindex="-1"></a>      <span class="cn">TRUE</span> <span class="sc">~</span> <span class="st">"Rebuilding"</span></span>
+<span id="cb17-11"><a href="#cb17-11" aria-hidden="true" tabindex="-1"></a>    )</span>
+<span id="cb17-12"><a href="#cb17-12" aria-hidden="true" tabindex="-1"></a>  ) <span class="sc">|&gt;</span></span>
+<span id="cb17-13"><a href="#cb17-13" aria-hidden="true" tabindex="-1"></a>  <span class="fu">arrange</span>(<span class="fu">desc</span>(net_ypp))</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</details>
+</div>
+<p>Print out the data in a nice format.</p>
+<div class="cell">
+<details open="" class="code-fold">
+<summary>Show R Code</summary>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb18"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb18-1"><a href="#cb18-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Render structured output table</span></span>
+<span id="cb18-2"><a href="#cb18-2" aria-hidden="true" tabindex="-1"></a>all_ypp <span class="sc">|&gt;</span></span>
+<span id="cb18-3"><a href="#cb18-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">select</span>(team, off_ypp, def_ypp, net_ypp, tier) <span class="sc">|&gt;</span></span>
+<span id="cb18-4"><a href="#cb18-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">gt</span>() <span class="sc">|&gt;</span></span>
+<span id="cb18-5"><a href="#cb18-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">tab_header</span>(</span>
+<span id="cb18-6"><a href="#cb18-6" aria-hidden="true" tabindex="-1"></a>    <span class="at">title =</span> <span class="st">"2025 FBS Yards Per Play Summary"</span>,</span>
+<span id="cb18-7"><a href="#cb18-7" aria-hidden="true" tabindex="-1"></a>    <span class="at">subtitle =</span> <span class="st">"Evaluated on all rushing and passing attempts"</span></span>
+<span id="cb18-8"><a href="#cb18-8" aria-hidden="true" tabindex="-1"></a>  ) <span class="sc">|&gt;</span></span>
+<span id="cb18-9"><a href="#cb18-9" aria-hidden="true" tabindex="-1"></a>  <span class="fu">cols_label</span>(</span>
+<span id="cb18-10"><a href="#cb18-10" aria-hidden="true" tabindex="-1"></a>    <span class="at">team =</span> <span class="st">"Team"</span>,</span>
+<span id="cb18-11"><a href="#cb18-11" aria-hidden="true" tabindex="-1"></a>    <span class="at">off_ypp =</span> <span class="st">"Offensive YPP"</span>,</span>
+<span id="cb18-12"><a href="#cb18-12" aria-hidden="true" tabindex="-1"></a>    <span class="at">def_ypp =</span> <span class="st">"Defensive YPP"</span>,</span>
+<span id="cb18-13"><a href="#cb18-13" aria-hidden="true" tabindex="-1"></a>    <span class="at">net_ypp =</span> <span class="st">"Net YPP Margin"</span>,</span>
+<span id="cb18-14"><a href="#cb18-14" aria-hidden="true" tabindex="-1"></a>    <span class="at">tier =</span> <span class="st">"Performance Tier"</span></span>
+<span id="cb18-15"><a href="#cb18-15" aria-hidden="true" tabindex="-1"></a>  ) <span class="sc">|&gt;</span></span>
+<span id="cb18-16"><a href="#cb18-16" aria-hidden="true" tabindex="-1"></a>  <span class="fu">fmt_number</span>(<span class="at">columns =</span> <span class="fu">where</span>(is.numeric), <span class="at">decimals =</span> <span class="dv">2</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</details>
+</div>
+<p>Now a slick visualization with ‘repel’ labels to make things readable.</p>
+<div class="cell">
+<details open="" class="code-fold">
+<summary>Show R Code</summary>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb19"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb19-1"><a href="#cb19-1" aria-hidden="true" tabindex="-1"></a><span class="fu">ggplot</span>(all_ypp, <span class="fu">aes</span>(<span class="at">x =</span> off_ypp, <span class="at">y =</span> def_ypp)) <span class="sc">+</span></span>
+<span id="cb19-2"><a href="#cb19-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_vline</span>(<span class="at">xintercept =</span> <span class="fu">mean</span>(all_ypp<span class="sc">$</span>off_ypp), <span class="at">linetype =</span> <span class="st">"dashed"</span>, <span class="at">color =</span> <span class="st">"gray50"</span>) <span class="sc">+</span></span>
+<span id="cb19-3"><a href="#cb19-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_hline</span>(<span class="at">yintercept =</span> <span class="fu">mean</span>(all_ypp<span class="sc">$</span>def_ypp), <span class="at">linetype =</span> <span class="st">"dashed"</span>, <span class="at">color =</span> <span class="st">"gray50"</span>) <span class="sc">+</span></span>
+<span id="cb19-4"><a href="#cb19-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_point</span>(<span class="fu">aes</span>(<span class="at">color =</span> tier), <span class="at">size =</span> <span class="dv">3</span>) <span class="sc">+</span></span>
+<span id="cb19-5"><a href="#cb19-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_text_repel</span>(<span class="fu">aes</span>(<span class="at">label =</span> team), <span class="at">size =</span> <span class="fl">3.5</span>, <span class="at">max.overlaps =</span> <span class="dv">15</span>) <span class="sc">+</span></span>
+<span id="cb19-6"><a href="#cb19-6" aria-hidden="true" tabindex="-1"></a>  <span class="fu">scale_y_reverse</span>() <span class="sc">+</span> </span>
+<span id="cb19-7"><a href="#cb19-7" aria-hidden="true" tabindex="-1"></a>  <span class="fu">scale_color_brewer</span>(<span class="at">palette =</span> <span class="st">"Set1"</span>) <span class="sc">+</span></span>
+<span id="cb19-8"><a href="#cb19-8" aria-hidden="true" tabindex="-1"></a>  <span class="fu">labs</span>(</span>
+<span id="cb19-9"><a href="#cb19-9" aria-hidden="true" tabindex="-1"></a>    <span class="at">title =</span> <span class="st">"2025 Team Yards Per Play Matrix"</span>,</span>
+<span id="cb19-10"><a href="#cb19-10" aria-hidden="true" tabindex="-1"></a>    <span class="at">subtitle =</span> <span class="st">"Top-Right quadrant indicates above-average offensive and defensive performance"</span>,</span>
+<span id="cb19-11"><a href="#cb19-11" aria-hidden="true" tabindex="-1"></a>    <span class="at">x =</span> <span class="st">"Offensive YPP (Higher is Better)"</span>,</span>
+<span id="cb19-12"><a href="#cb19-12" aria-hidden="true" tabindex="-1"></a>    <span class="at">y =</span> <span class="st">"Defensive YPP Allowed (Lower is Better)"</span>,</span>
+<span id="cb19-13"><a href="#cb19-13" aria-hidden="true" tabindex="-1"></a>    <span class="at">color =</span> <span class="st">"Tier"</span>,</span>
+<span id="cb19-14"><a href="#cb19-14" aria-hidden="true" tabindex="-1"></a>    <span class="at">caption =</span> <span class="st">"Data: cfbfastr"</span></span>
+<span id="cb19-15"><a href="#cb19-15" aria-hidden="true" tabindex="-1"></a>  ) <span class="sc">+</span></span>
+<span id="cb19-16"><a href="#cb19-16" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme_minimal</span>(<span class="at">base_size =</span> <span class="dv">12</span>) <span class="sc">+</span></span>
+<span id="cb19-17"><a href="#cb19-17" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme</span>(</span>
+<span id="cb19-18"><a href="#cb19-18" aria-hidden="true" tabindex="-1"></a>    <span class="at">plot.title =</span> <span class="fu">element_text</span>(<span class="at">face =</span> <span class="st">"bold"</span>),</span>
+<span id="cb19-19"><a href="#cb19-19" aria-hidden="true" tabindex="-1"></a>    <span class="at">legend.position =</span> <span class="st">"bottom"</span></span>
+<span id="cb19-20"><a href="#cb19-20" aria-hidden="true" tabindex="-1"></a>  )</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</details>
+</div>
+<section id="task-4" class="level3" data-number="4.1">
+<h3 data-number="4.1" class="anchored" data-anchor-id="task-4"><span class="header-section-number">4.1</span> Task 4</h3>
+<p>Repeat the analysis above for another metric. This time only include data from games where the score differential between the two teams was less than 21.</p>
+</section>
+</section>
+<section id="using-your-api-key" class="level2" data-number="5">
+<h2 data-number="5" class="anchored" data-anchor-id="using-your-api-key"><span class="header-section-number">5</span> Using your API key</h2>
+<p>In the code below put your key within the quotes</p>
+<div class="cell">
+<details open="" class="code-fold">
+<summary>Show R Code</summary>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb20"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb20-1"><a href="#cb20-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Verify API key availability</span></span>
+<span id="cb20-2"><a href="#cb20-2" aria-hidden="true" tabindex="-1"></a><span class="cf">if</span> (<span class="fu">Sys.getenv</span>(<span class="st">"CFBD_API_KEY"</span>) <span class="sc">==</span> <span class="st">""</span>) {</span>
+<span id="cb20-3"><a href="#cb20-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">stop</span>(<span class="st">"CFBD_API_KEY environment variable not detected."</span>)</span>
+<span id="cb20-4"><a href="#cb20-4" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb20-5"><a href="#cb20-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb20-6"><a href="#cb20-6" aria-hidden="true" tabindex="-1"></a><span class="co"># Load live API endpoints: 2025 Team Talent Ratings &amp; Game Results</span></span>
+<span id="cb20-7"><a href="#cb20-7" aria-hidden="true" tabindex="-1"></a>talent_raw <span class="ot">&lt;-</span> <span class="fu">cfbd_team_talent</span>(<span class="at">year =</span> <span class="dv">2025</span>) <span class="sc">|&gt;</span> <span class="fu">rename</span>(<span class="st">"team"</span><span class="ot">=</span><span class="st">"school"</span>)</span>
+<span id="cb20-8"><a href="#cb20-8" aria-hidden="true" tabindex="-1"></a>games_raw  <span class="ot">&lt;-</span> <span class="fu">cfbd_game_info</span>(<span class="at">year =</span> <span class="dv">2025</span>, <span class="at">season_type =</span> <span class="st">"regular"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</details>
+</div>
+<p>Get wins for each team in 2025</p>
+<div class="cell">
+<details open="" class="code-fold">
+<summary>Show R Code</summary>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb21"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb21-1"><a href="#cb21-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Calculate regular season wins per team</span></span>
+<span id="cb21-2"><a href="#cb21-2" aria-hidden="true" tabindex="-1"></a>home_wins <span class="ot">&lt;-</span> games_raw <span class="sc">|&gt;</span> </span>
+<span id="cb21-3"><a href="#cb21-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(<span class="sc">!</span><span class="fu">is.na</span>(home_points), home_points <span class="sc">&gt;</span> away_points) <span class="sc">|&gt;</span> </span>
+<span id="cb21-4"><a href="#cb21-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">count</span>(<span class="at">team =</span> home_team, <span class="at">name =</span> <span class="st">"wins"</span>)</span>
+<span id="cb21-5"><a href="#cb21-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb21-6"><a href="#cb21-6" aria-hidden="true" tabindex="-1"></a>away_wins <span class="ot">&lt;-</span> games_raw <span class="sc">|&gt;</span> </span>
+<span id="cb21-7"><a href="#cb21-7" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(<span class="sc">!</span><span class="fu">is.na</span>(away_points), away_points <span class="sc">&gt;</span> home_points) <span class="sc">|&gt;</span> </span>
+<span id="cb21-8"><a href="#cb21-8" aria-hidden="true" tabindex="-1"></a>  <span class="fu">count</span>(<span class="at">team =</span> away_team, <span class="at">name =</span> <span class="st">"wins"</span>)</span>
+<span id="cb21-9"><a href="#cb21-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb21-10"><a href="#cb21-10" aria-hidden="true" tabindex="-1"></a>total_wins <span class="ot">&lt;-</span> <span class="fu">bind_rows</span>(home_wins, away_wins) <span class="sc">|&gt;</span> </span>
+<span id="cb21-11"><a href="#cb21-11" aria-hidden="true" tabindex="-1"></a>  <span class="fu">group_by</span>(team) <span class="sc">|&gt;</span> </span>
+<span id="cb21-12"><a href="#cb21-12" aria-hidden="true" tabindex="-1"></a>  <span class="fu">summarize</span>(<span class="at">wins =</span> <span class="fu">sum</span>(wins), <span class="at">.groups =</span> <span class="st">"drop"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</details>
+</div>
+<div class="cell">
+<details open="" class="code-fold">
+<summary>Show R Code</summary>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb22"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb22-1"><a href="#cb22-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Clean talent scores, join wins, and extract regression residuals</span></span>
+<span id="cb22-2"><a href="#cb22-2" aria-hidden="true" tabindex="-1"></a>df_analytics <span class="ot">&lt;-</span> talent_raw <span class="sc">|&gt;</span> </span>
+<span id="cb22-3"><a href="#cb22-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">transmute</span>(</span>
+<span id="cb22-4"><a href="#cb22-4" aria-hidden="true" tabindex="-1"></a>    team,</span>
+<span id="cb22-5"><a href="#cb22-5" aria-hidden="true" tabindex="-1"></a>    <span class="at">talent_score =</span> <span class="fu">as.numeric</span>(talent)</span>
+<span id="cb22-6"><a href="#cb22-6" aria-hidden="true" tabindex="-1"></a>  ) <span class="sc">|&gt;</span> </span>
+<span id="cb22-7"><a href="#cb22-7" aria-hidden="true" tabindex="-1"></a>  <span class="fu">inner_join</span>(total_wins, <span class="at">by =</span> <span class="st">"team"</span>) <span class="sc">|&gt;</span> </span>
+<span id="cb22-8"><a href="#cb22-8" aria-hidden="true" tabindex="-1"></a>  <span class="fu">drop_na</span>()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</details>
+</div>
+<div class="cell">
+<details open="" class="code-fold">
+<summary>Show R Code</summary>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb23"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb23-1"><a href="#cb23-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Fit OLS model to derive expected wins and residual performance</span></span>
+<span id="cb23-2"><a href="#cb23-2" aria-hidden="true" tabindex="-1"></a>model <span class="ot">&lt;-</span> <span class="fu">lm</span>(wins <span class="sc">~</span> talent_score, <span class="at">data =</span> df_analytics)</span>
+<span id="cb23-3"><a href="#cb23-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb23-4"><a href="#cb23-4" aria-hidden="true" tabindex="-1"></a>df_analytics <span class="ot">&lt;-</span> df_analytics <span class="sc">|&gt;</span> </span>
+<span id="cb23-5"><a href="#cb23-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(</span>
+<span id="cb23-6"><a href="#cb23-6" aria-hidden="true" tabindex="-1"></a>    <span class="at">expected_wins =</span> <span class="fu">predict</span>(model),</span>
+<span id="cb23-7"><a href="#cb23-7" aria-hidden="true" tabindex="-1"></a>    <span class="at">win_residual  =</span> wins <span class="sc">-</span> expected_wins,</span>
+<span id="cb23-8"><a href="#cb23-8" aria-hidden="true" tabindex="-1"></a>    <span class="at">efficiency   =</span> <span class="fu">if_else</span>(win_residual <span class="sc">&gt;=</span> <span class="dv">0</span>, <span class="st">"Overperforming"</span>, <span class="st">"Underperforming"</span>)</span>
+<span id="cb23-9"><a href="#cb23-9" aria-hidden="true" tabindex="-1"></a>  ) <span class="sc">|&gt;</span> </span>
+<span id="cb23-10"><a href="#cb23-10" aria-hidden="true" tabindex="-1"></a>  <span class="fu">arrange</span>(<span class="fu">desc</span>(win_residual))</span>
+<span id="cb23-11"><a href="#cb23-11" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb23-12"><a href="#cb23-12" aria-hidden="true" tabindex="-1"></a><span class="co"># Tabulate top 5 overperforming teams relative to talent</span></span>
+<span id="cb23-13"><a href="#cb23-13" aria-hidden="true" tabindex="-1"></a>df_analytics <span class="sc">|&gt;</span> </span>
+<span id="cb23-14"><a href="#cb23-14" aria-hidden="true" tabindex="-1"></a>  <span class="fu">slice_head</span>(<span class="at">n =</span> <span class="dv">5</span>) <span class="sc">|&gt;</span> </span>
+<span id="cb23-15"><a href="#cb23-15" aria-hidden="true" tabindex="-1"></a>  <span class="fu">gt</span>() <span class="sc">|&gt;</span> </span>
+<span id="cb23-16"><a href="#cb23-16" aria-hidden="true" tabindex="-1"></a>  <span class="fu">tab_header</span>(</span>
+<span id="cb23-17"><a href="#cb23-17" aria-hidden="true" tabindex="-1"></a>    <span class="at">title =</span> <span class="st">"Top 5 Talent Overperformers (2024)"</span>,</span>
+<span id="cb23-18"><a href="#cb23-18" aria-hidden="true" tabindex="-1"></a>    <span class="at">subtitle =</span> <span class="st">"Teams exceeding expected win totals based on 247Sports Composite Talent"</span></span>
+<span id="cb23-19"><a href="#cb23-19" aria-hidden="true" tabindex="-1"></a>  ) <span class="sc">|&gt;</span> </span>
+<span id="cb23-20"><a href="#cb23-20" aria-hidden="true" tabindex="-1"></a>  <span class="fu">cols_label</span>(</span>
+<span id="cb23-21"><a href="#cb23-21" aria-hidden="true" tabindex="-1"></a>    <span class="at">team =</span> <span class="st">"Team"</span>,</span>
+<span id="cb23-22"><a href="#cb23-22" aria-hidden="true" tabindex="-1"></a>    <span class="at">talent_score =</span> <span class="st">"Talent Score"</span>,</span>
+<span id="cb23-23"><a href="#cb23-23" aria-hidden="true" tabindex="-1"></a>    <span class="at">wins =</span> <span class="st">"Actual Wins"</span>,</span>
+<span id="cb23-24"><a href="#cb23-24" aria-hidden="true" tabindex="-1"></a>    <span class="at">expected_wins =</span> <span class="st">"Expected Wins"</span>,</span>
+<span id="cb23-25"><a href="#cb23-25" aria-hidden="true" tabindex="-1"></a>    <span class="at">win_residual =</span> <span class="st">"Win Surplus"</span>,</span>
+<span id="cb23-26"><a href="#cb23-26" aria-hidden="true" tabindex="-1"></a>    <span class="at">efficiency =</span> <span class="st">"Status"</span></span>
+<span id="cb23-27"><a href="#cb23-27" aria-hidden="true" tabindex="-1"></a>  ) <span class="sc">|&gt;</span> </span>
+<span id="cb23-28"><a href="#cb23-28" aria-hidden="true" tabindex="-1"></a>  <span class="fu">fmt_number</span>(<span class="at">columns =</span> <span class="fu">c</span>(talent_score, expected_wins, win_residual), <span class="at">decimals =</span> <span class="dv">2</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</details>
+</div>
+<p>Make a visualization of talent vs Wins with the regression line on the plot</p>
+<div class="cell">
+<details open="" class="code-fold">
+<summary>Show R Code</summary>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb24"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb24-1"><a href="#cb24-1" aria-hidden="true" tabindex="-1"></a><span class="fu">ggplot</span>(df_analytics, <span class="fu">aes</span>(<span class="at">x =</span> talent_score, <span class="at">y =</span> wins)) <span class="sc">+</span></span>
+<span id="cb24-2"><a href="#cb24-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_smooth</span>(<span class="at">method =</span> <span class="st">"lm"</span>, <span class="at">se =</span> <span class="cn">TRUE</span>, <span class="at">color =</span> <span class="st">"black"</span>, <span class="at">fill =</span> <span class="st">"gray80"</span>, <span class="at">linetype =</span> <span class="st">"dashed"</span>) <span class="sc">+</span></span>
+<span id="cb24-3"><a href="#cb24-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_point</span>(<span class="fu">aes</span>(<span class="at">color =</span> win_residual), <span class="at">size =</span> <span class="fl">3.5</span>, <span class="at">alpha =</span> <span class="fl">0.85</span>) <span class="sc">+</span></span>
+<span id="cb24-4"><a href="#cb24-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_text_repel</span>(</span>
+<span id="cb24-5"><a href="#cb24-5" aria-hidden="true" tabindex="-1"></a>    <span class="fu">aes</span>(<span class="at">label =</span> team), </span>
+<span id="cb24-6"><a href="#cb24-6" aria-hidden="true" tabindex="-1"></a>    <span class="at">size =</span> <span class="dv">3</span>, </span>
+<span id="cb24-7"><a href="#cb24-7" aria-hidden="true" tabindex="-1"></a>    <span class="at">max.overlaps =</span> <span class="dv">12</span>,</span>
+<span id="cb24-8"><a href="#cb24-8" aria-hidden="true" tabindex="-1"></a>    <span class="at">box.padding =</span> <span class="fl">0.3</span></span>
+<span id="cb24-9"><a href="#cb24-9" aria-hidden="true" tabindex="-1"></a>  ) <span class="sc">+</span></span>
+<span id="cb24-10"><a href="#cb24-10" aria-hidden="true" tabindex="-1"></a>  <span class="fu">scale_color_gradient2</span>(</span>
+<span id="cb24-11"><a href="#cb24-11" aria-hidden="true" tabindex="-1"></a>    <span class="at">low =</span> <span class="st">"#d73027"</span>, </span>
+<span id="cb24-12"><a href="#cb24-12" aria-hidden="true" tabindex="-1"></a>    <span class="at">mid =</span> <span class="st">"#ffffbf"</span>, </span>
+<span id="cb24-13"><a href="#cb24-13" aria-hidden="true" tabindex="-1"></a>    <span class="at">high =</span> <span class="st">"#1a9850"</span>, </span>
+<span id="cb24-14"><a href="#cb24-14" aria-hidden="true" tabindex="-1"></a>    <span class="at">midpoint =</span> <span class="dv">0</span>,</span>
+<span id="cb24-15"><a href="#cb24-15" aria-hidden="true" tabindex="-1"></a>    <span class="at">name =</span> <span class="st">"Win Surplus"</span></span>
+<span id="cb24-16"><a href="#cb24-16" aria-hidden="true" tabindex="-1"></a>  ) <span class="sc">+</span></span>
+<span id="cb24-17"><a href="#cb24-17" aria-hidden="true" tabindex="-1"></a>  <span class="fu">labs</span>(</span>
+<span id="cb24-18"><a href="#cb24-18" aria-hidden="true" tabindex="-1"></a>    <span class="at">title =</span> <span class="st">"2025 FBS Talent Composite vs. Regular Season Wins"</span>,</span>
+<span id="cb24-19"><a href="#cb24-19" aria-hidden="true" tabindex="-1"></a>    <span class="at">subtitle =</span> <span class="st">"Dashed line indicates baseline OLS expected wins given roster talent"</span>,</span>
+<span id="cb24-20"><a href="#cb24-20" aria-hidden="true" tabindex="-1"></a>    <span class="at">x =</span> <span class="st">"247Sports Team Talent Score"</span>,</span>
+<span id="cb24-21"><a href="#cb24-21" aria-hidden="true" tabindex="-1"></a>    <span class="at">y =</span> <span class="st">"Actual Regular Season Wins"</span>,</span>
+<span id="cb24-22"><a href="#cb24-22" aria-hidden="true" tabindex="-1"></a>    <span class="at">caption =</span> <span class="st">"Data fetched via live API: cfbfastr"</span></span>
+<span id="cb24-23"><a href="#cb24-23" aria-hidden="true" tabindex="-1"></a>  ) <span class="sc">+</span></span>
+<span id="cb24-24"><a href="#cb24-24" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme_minimal</span>(<span class="at">base_size =</span> <span class="dv">12</span>) <span class="sc">+</span></span>
+<span id="cb24-25"><a href="#cb24-25" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme</span>(</span>
+<span id="cb24-26"><a href="#cb24-26" aria-hidden="true" tabindex="-1"></a>    <span class="at">plot.title =</span> <span class="fu">element_text</span>(<span class="at">face =</span> <span class="st">"bold"</span>),</span>
+<span id="cb24-27"><a href="#cb24-27" aria-hidden="true" tabindex="-1"></a>    <span class="at">panel.grid.minor =</span> <span class="fu">element_blank</span>()</span>
+<span id="cb24-28"><a href="#cb24-28" aria-hidden="true" tabindex="-1"></a>  )</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</details>
+</div>
 </section>
 
 </main>

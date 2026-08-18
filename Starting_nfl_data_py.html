@@ -1,0 +1,1765 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
+
+<meta charset="utf-8">
+<meta name="generator" content="quarto-1.10.18">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+
+<meta name="author" content="Schuckers">
+<meta name="dcterms.date" content="2026-08-16">
+
+<title>Introduction to NFL Data Analysis with Python (nfl_data_py)</title>
+<style>
+/* Default styles provided by pandoc.
+** See https://pandoc.org/MANUAL.html#variables-for-html for config info.
+*/
+span.smallcaps{font-variant: small-caps;}
+div.columns{display: flex; gap: 1.5em;}
+div.column{flex: auto;}
+@media screen {
+div.columns{gap: min(4vw, 1.5em);}
+div.column{overflow-x: auto;}
+}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+ul.task-list li input[type="checkbox"] {
+  width: 0.8em;
+  margin: 0 0.8em 0.2em -1em; /* quarto-specific, see https://github.com/quarto-dev/quarto-cli/issues/4556 */ 
+  vertical-align: middle;
+}
+/* CSS for syntax highlighting */
+html { -webkit-text-size-adjust: 100%; }
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+  { counter-reset: source-line 0; }
+pre.numberSource code > span
+  { position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+  { content: counter(source-line);
+    position: relative; left: -1em; text-align: right; vertical-align: baseline;
+    border: none; display: inline-block;
+    -webkit-touch-callout: none; -webkit-user-select: none;
+    -khtml-user-select: none; -moz-user-select: none;
+    -ms-user-select: none; user-select: none;
+    padding: 0 4px; width: 4em;
+  }
+pre.numberSource { margin-left: 3em;  padding-left: 4px; }
+div.sourceCode
+  {   }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
+</style>
+
+
+<script src="Starting_nfl_data_py_files/libs/clipboard/clipboard.min.js"></script>
+<script src="Starting_nfl_data_py_files/libs/quarto-html/quarto.js" type="module"></script>
+<script src="Starting_nfl_data_py_files/libs/quarto-html/tabsets/tabsets.js" type="module"></script>
+<script src="Starting_nfl_data_py_files/libs/quarto-html/popper.min.js"></script>
+<script src="Starting_nfl_data_py_files/libs/quarto-html/tippy.umd.min.js"></script>
+<script src="Starting_nfl_data_py_files/libs/quarto-html/anchor.min.js"></script>
+<link href="Starting_nfl_data_py_files/libs/quarto-html/tippy.css" rel="stylesheet">
+<link href="Starting_nfl_data_py_files/libs/quarto-html/quarto-syntax-highlighting-bb62276ab45c84d9efd712f51ff97b5a.css" rel="stylesheet" id="quarto-text-highlighting-styles">
+<script src="Starting_nfl_data_py_files/libs/bootstrap/bootstrap.min.js"></script>
+<link href="Starting_nfl_data_py_files/libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
+<link href="Starting_nfl_data_py_files/libs/bootstrap/bootstrap-f484210136fb8cef9943d2d2f897601a.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
+
+
+</head>
+
+<body class="quarto-light">
+
+<div id="quarto-content" class="page-columns page-rows-contents page-layout-article">
+<div id="quarto-margin-sidebar" class="sidebar margin-sidebar">
+  <nav id="TOC" role="doc-toc" class="toc-active">
+    <h2 id="toc-title">Table of contents</h2>
+   
+  <ul>
+  <li><a href="#overview" id="toc-overview" class="nav-link active" data-scroll-target="#overview"><span class="header-section-number">0.0.1</span> Overview</a></li>
+  <li><a href="#environment-setup-required-libraries" id="toc-environment-setup-required-libraries" class="nav-link" data-scroll-target="#environment-setup-required-libraries"><span class="header-section-number">0.0.2</span> Environment Setup &amp; Required Libraries</a></li>
+  <li><a href="#tasks" id="toc-tasks" class="nav-link" data-scroll-target="#tasks"><span class="header-section-number">0.1</span> Tasks</a>
+  <ul class="collapse">
+  <li><a href="#task-3" id="toc-task-3" class="nav-link" data-scroll-target="#task-3"><span class="header-section-number">0.1.1</span> Task 3</a></li>
+  </ul></li>
+  <li><a href="#college-football-data" id="toc-college-football-data" class="nav-link" data-scroll-target="#college-football-data"><span class="header-section-number">0.2</span> College Football Data</a></li>
+  <li><a href="#lets-look-at-who-is-best-on-this-metric" id="toc-lets-look-at-who-is-best-on-this-metric" class="nav-link" data-scroll-target="#lets-look-at-who-is-best-on-this-metric"><span class="header-section-number">1</span> Let’s look at who is best on this metric</a></li>
+  </ul>
+</nav>
+</div>
+<main class="content" id="quarto-document-content">
+
+<header id="title-block-header" class="quarto-title-block default">
+<div class="quarto-title">
+<h1 class="title">Introduction to NFL Data Analysis with Python (<code>nfl_data_py</code>)</h1>
+<p class="subtitle lead">SPOA 4001/ItCS 5010: American Football Analytics</p>
+</div>
+
+
+
+<div class="quarto-title-meta">
+
+    <div>
+    <div class="quarto-title-meta-heading">Author</div>
+    <div class="quarto-title-meta-contents">
+             <p>Schuckers </p>
+          </div>
+  </div>
+    
+    <div>
+    <div class="quarto-title-meta-heading">Published</div>
+    <div class="quarto-title-meta-contents">
+      <p class="date">August 16, 2026</p>
+    </div>
+  </div>
+  
+    
+  </div>
+  
+
+
+</header>
+
+
+<section id="overview" class="level3" data-number="0.0.1">
+<h3 data-number="0.0.1" class="anchored" data-anchor-id="overview"><span class="header-section-number">0.0.1</span> Overview</h3>
+<p>In advanced sports analytics, play-by-play data provides the granular foundation needed to evaluate team efficiency, player performance, and tactical decisions. In this lab, we utilize <strong><code>nfl_data_py</code></strong>, a Python package that provides fast access to cleaned NFL play-by-play data embedded with advanced statistical metrics.</p>
+<p>Below code chunk is for Schuckers and testing in Rstudio</p>
+<div class="cell">
+<details open="" class="code-fold">
+<summary>Show Python Code</summary>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb1"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a> <span class="co">#library(reticulate)</span></span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a> <span class="co">#Sys.setenv(RETICULATE_PYTHON = "C:\\Users\\mschuck1\\AppData\\Local\\Programs\\Python\\PYTHON313\\python.exe")</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</details>
+</div>
+</section>
+<section id="environment-setup-required-libraries" class="level3" data-number="0.0.2">
+<h3 data-number="0.0.2" class="anchored" data-anchor-id="environment-setup-required-libraries"><span class="header-section-number">0.0.2</span> Environment Setup &amp; Required Libraries</h3>
+<p>Ensure you have the required packages installed before running this document:</p>
+<p>NOTE I had some issues with installing nfl_data_py and Google gave me this: “Installing nfl_data_py often fails because current releases restrict numpy to version 1.x due to breaking pandas/numpy API updates. This causes conflict errors on Python 3.13 or environments with numpy 2.0+” I did the following commented code to get it to run.</p>
+<p>Some code you need to run</p>
+<div class="cell">
+<details open="" class="code-fold">
+<summary>Show Python Code</summary>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb2"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="co">#pip install "numpy&gt;=2.0" pandas requests statsmodels great_tables adjustText fastparquet tabulate pyarrow sporsdataverse</span></span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a><span class="co">#pip install nfl_data_py --no-deps</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</details>
+</div>
+<p>Some code that might need to be run:</p>
+<div class="cell">
+<details open="" class="code-fold">
+<summary>Show Python Code</summary>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb3"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="co">#Uncomment if packages are not yet installed</span></span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a><span class="co">#pip install pandas numpy matplotlib seaborn nfl_data_py statsmodels great_tables adjustText requests pyarrow  tabulate</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</details>
+</div>
+<div class="cell">
+<details open="" class="code-fold">
+<summary>Show Python Code</summary>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb4"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> os</span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> tabulate</span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> requests</span>
+<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> pandas <span class="im">as</span> pd</span>
+<span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> numpy <span class="im">as</span> np</span>
+<span id="cb4-6"><a href="#cb4-6" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> matplotlib.pyplot <span class="im">as</span> plt</span>
+<span id="cb4-7"><a href="#cb4-7" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> seaborn <span class="im">as</span> sns</span>
+<span id="cb4-8"><a href="#cb4-8" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> nfl_data_py <span class="im">as</span> nfl</span>
+<span id="cb4-9"><a href="#cb4-9" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> statsmodels.formula.api <span class="im">as</span> smf</span>
+<span id="cb4-10"><a href="#cb4-10" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> pyarrow</span>
+<span id="cb4-11"><a href="#cb4-11" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> sportsdataverse <span class="im">as</span> sdv</span>
+<span id="cb4-12"><a href="#cb4-12" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> polars <span class="im">as</span> pl</span>
+<span id="cb4-13"><a href="#cb4-13" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> great_tables <span class="im">import</span> GT, md</span>
+<span id="cb4-14"><a href="#cb4-14" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> adjustText <span class="im">import</span> adjust_text</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</details>
+</div>
+<div class="cell">
+<details open="" class="code-fold">
+<summary>Show Python Code</summary>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb5"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Set global display preferences</span></span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a>pd.set_option(<span class="st">'display.max_columns'</span>, <span class="va">None</span>)</span>
+<span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a>pd.set_option(<span class="st">'display.float_format'</span>, <span class="kw">lambda</span> x: <span class="st">'</span><span class="sc">%.3f</span><span class="st">'</span> <span class="op">%</span> x)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</details>
+</div>
+<p>Starting with Play by Play (pbp) data</p>
+<p>In the interest of speed, I’ve only taken regular season data from the first 4 weeks of the 2025 season.</p>
+<div class="cell">
+<details open="" class="code-fold">
+<summary>Show Python Code</summary>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb6"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Fetch 2025 play-by-play data</span></span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a>raw_pbp_2025 <span class="op">=</span> nfl.import_pbp_data([<span class="dv">2025</span>])</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</details>
+<details open="" class="code-fold">
+<summary>Show Python Code</summary>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb7"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a><span class="co"># Filter for Weeks 1-4 regular season scrimmage plays</span></span>
+<span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a>pbp_w1_4 <span class="op">=</span> raw_pbp_2025[</span>
+<span id="cb7-4"><a href="#cb7-4" aria-hidden="true" tabindex="-1"></a>    (raw_pbp_2025[<span class="st">'season_type'</span>] <span class="op">==</span> <span class="st">'REG'</span>) <span class="op">&amp;</span></span>
+<span id="cb7-5"><a href="#cb7-5" aria-hidden="true" tabindex="-1"></a>    (raw_pbp_2025[<span class="st">'week'</span>] <span class="op">&lt;=</span> <span class="dv">4</span>) <span class="op">&amp;</span></span>
+<span id="cb7-6"><a href="#cb7-6" aria-hidden="true" tabindex="-1"></a>    (raw_pbp_2025[<span class="st">'posteam'</span>].notna()) <span class="op">&amp;</span></span>
+<span id="cb7-7"><a href="#cb7-7" aria-hidden="true" tabindex="-1"></a>    (raw_pbp_2025[<span class="st">'play_type'</span>].isin([<span class="st">'pass'</span>, <span class="st">'run'</span>]) <span class="op">|</span> (raw_pbp_2025[<span class="st">'pass'</span>] <span class="op">==</span> <span class="dv">1</span>) <span class="op">|</span> (raw_pbp_2025[<span class="st">'rush'</span>] <span class="op">==</span> <span class="dv">1</span>)) <span class="op">&amp;</span></span>
+<span id="cb7-8"><a href="#cb7-8" aria-hidden="true" tabindex="-1"></a>    (raw_pbp_2025[<span class="st">'epa'</span>].notna())</span>
+<span id="cb7-9"><a href="#cb7-9" aria-hidden="true" tabindex="-1"></a>].copy()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</details>
+</div>
+<div class="cell">
+<details open="" class="code-fold">
+<summary>Show Python Code</summary>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb8"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Inspect dataset dimensions</span></span>
+<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">"Dataset dimensions (rows x cols):"</span>, pbp_w1_4.shape)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</details>
+</div>
+<p>What variables are available to us:</p>
+<div class="cell">
+<details open="" class="code-fold">
+<summary>Show Python Code</summary>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb9"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a><span class="bu">list</span>(pbp_w1_4.columns)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</details>
+</div>
+<p>Only ~370 features/variables per play. Let’s take a look at the first 6 rows of these data:</p>
+<div class="cell">
+<details open="" class="code-fold">
+<summary>Show Python Code</summary>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb10"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a>pbp_w1_4.head(<span class="dv">6</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</details>
+</div>
+<p>The next set of code aggregates all of the play by play data by team. We get some variables based upon expected points added (EPA) per play. We do this aggregation by offense and defense then join them back together.</p>
+<div class="cell">
+<details open="" class="code-fold">
+<summary>Show Python Code</summary>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb11"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Offensive Aggregation (posteam)</span></span>
+<span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a>offense_summary <span class="op">=</span> pbp_w1_4.groupby(<span class="st">'posteam'</span>).<span class="bu">apply</span>(</span>
+<span id="cb11-3"><a href="#cb11-3" aria-hidden="true" tabindex="-1"></a>    <span class="kw">lambda</span> x: pd.Series({</span>
+<span id="cb11-4"><a href="#cb11-4" aria-hidden="true" tabindex="-1"></a>        <span class="st">'off_plays'</span>: <span class="bu">len</span>(x),</span>
+<span id="cb11-5"><a href="#cb11-5" aria-hidden="true" tabindex="-1"></a>        <span class="st">'off_epa_per_play'</span>: x[<span class="st">'epa'</span>].mean(),</span>
+<span id="cb11-6"><a href="#cb11-6" aria-hidden="true" tabindex="-1"></a>        <span class="st">'pass_epa'</span>: x.loc[x[<span class="st">'pass'</span>] <span class="op">==</span> <span class="dv">1</span>, <span class="st">'epa'</span>].mean(),</span>
+<span id="cb11-7"><a href="#cb11-7" aria-hidden="true" tabindex="-1"></a>        <span class="st">'rush_epa'</span>: x.loc[x[<span class="st">'rush'</span>] <span class="op">==</span> <span class="dv">1</span>, <span class="st">'epa'</span>].mean(),</span>
+<span id="cb11-8"><a href="#cb11-8" aria-hidden="true" tabindex="-1"></a>        <span class="st">'off_success_rate'</span>: x[<span class="st">'success'</span>].mean(),</span>
+<span id="cb11-9"><a href="#cb11-9" aria-hidden="true" tabindex="-1"></a>        <span class="st">'dropback_pct'</span>: (x[<span class="st">'pass'</span>] <span class="op">==</span> <span class="dv">1</span>).mean()</span>
+<span id="cb11-10"><a href="#cb11-10" aria-hidden="true" tabindex="-1"></a>    }),</span>
+<span id="cb11-11"><a href="#cb11-11" aria-hidden="true" tabindex="-1"></a>    include_groups<span class="op">=</span><span class="va">False</span></span>
+<span id="cb11-12"><a href="#cb11-12" aria-hidden="true" tabindex="-1"></a>).reset_index()</span>
+<span id="cb11-13"><a href="#cb11-13" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-14"><a href="#cb11-14" aria-hidden="true" tabindex="-1"></a><span class="co"># Defensive Aggregation (defteam)</span></span>
+<span id="cb11-15"><a href="#cb11-15" aria-hidden="true" tabindex="-1"></a>defense_summary <span class="op">=</span> pbp_w1_4.groupby(<span class="st">'defteam'</span>).<span class="bu">apply</span>(</span>
+<span id="cb11-16"><a href="#cb11-16" aria-hidden="true" tabindex="-1"></a>    <span class="kw">lambda</span> x: pd.Series({</span>
+<span id="cb11-17"><a href="#cb11-17" aria-hidden="true" tabindex="-1"></a>        <span class="st">'def_plays'</span>: <span class="bu">len</span>(x),</span>
+<span id="cb11-18"><a href="#cb11-18" aria-hidden="true" tabindex="-1"></a>        <span class="st">'def_epa_allowed'</span>: x[<span class="st">'epa'</span>].mean(),</span>
+<span id="cb11-19"><a href="#cb11-19" aria-hidden="true" tabindex="-1"></a>        <span class="st">'def_pass_epa_allowed'</span>: x.loc[x[<span class="st">'pass'</span>] <span class="op">==</span> <span class="dv">1</span>, <span class="st">'epa'</span>].mean(),</span>
+<span id="cb11-20"><a href="#cb11-20" aria-hidden="true" tabindex="-1"></a>        <span class="st">'def_rush_epa_allowed'</span>: x.loc[x[<span class="st">'rush'</span>] <span class="op">==</span> <span class="dv">1</span>, <span class="st">'epa'</span>].mean(),</span>
+<span id="cb11-21"><a href="#cb11-21" aria-hidden="true" tabindex="-1"></a>        <span class="st">'def_success_rate_allowed'</span>: x[<span class="st">'success'</span>].mean()</span>
+<span id="cb11-22"><a href="#cb11-22" aria-hidden="true" tabindex="-1"></a>    }),</span>
+<span id="cb11-23"><a href="#cb11-23" aria-hidden="true" tabindex="-1"></a>    include_groups<span class="op">=</span><span class="va">False</span></span>
+<span id="cb11-24"><a href="#cb11-24" aria-hidden="true" tabindex="-1"></a>).reset_index()</span>
+<span id="cb11-25"><a href="#cb11-25" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-26"><a href="#cb11-26" aria-hidden="true" tabindex="-1"></a><span class="co"># Join Offense &amp; Defense into a single Master Team Summary</span></span>
+<span id="cb11-27"><a href="#cb11-27" aria-hidden="true" tabindex="-1"></a>team_summary <span class="op">=</span> pd.merge(</span>
+<span id="cb11-28"><a href="#cb11-28" aria-hidden="true" tabindex="-1"></a>    offense_summary, </span>
+<span id="cb11-29"><a href="#cb11-29" aria-hidden="true" tabindex="-1"></a>    defense_summary, </span>
+<span id="cb11-30"><a href="#cb11-30" aria-hidden="true" tabindex="-1"></a>    left_on<span class="op">=</span><span class="st">'posteam'</span>, </span>
+<span id="cb11-31"><a href="#cb11-31" aria-hidden="true" tabindex="-1"></a>    right_on<span class="op">=</span><span class="st">'defteam'</span></span>
+<span id="cb11-32"><a href="#cb11-32" aria-hidden="true" tabindex="-1"></a>).rename(columns<span class="op">=</span>{<span class="st">'posteam'</span>: <span class="st">'team'</span>}).drop(columns<span class="op">=</span>[<span class="st">'defteam'</span>])</span>
+<span id="cb11-33"><a href="#cb11-33" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-34"><a href="#cb11-34" aria-hidden="true" tabindex="-1"></a>team_summary <span class="op">=</span> team_summary.sort_values(by<span class="op">=</span><span class="st">'off_epa_per_play'</span>, ascending<span class="op">=</span><span class="va">False</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</details>
+</div>
+<div class="cell">
+<details open="" class="code-fold">
+<summary>Show Python Code</summary>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb12"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Display top 5 teams by Offensive EPA</span></span>
+<span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">"Top 5 Offensive Teams:"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</details>
+<details open="" class="code-fold">
+<summary>Show Python Code</summary>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb13"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(team_summary.head(<span class="dv">5</span>).<span class="bu">round</span>(<span class="dv">3</span>).to_markdown(index<span class="op">=</span><span class="va">False</span>))</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</details>
+<details open="" class="code-fold">
+<summary>Show Python Code</summary>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb14"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Display top 6 teams by Defensive EPA</span></span>
+<span id="cb14-2"><a href="#cb14-2" aria-hidden="true" tabindex="-1"></a>team_summary <span class="op">=</span> team_summary.sort_values(by<span class="op">=</span><span class="st">'def_epa_allowed'</span>, ascending<span class="op">=</span><span class="va">True</span>)</span>
+<span id="cb14-3"><a href="#cb14-3" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">"</span><span class="ch">\n</span><span class="st">Top 6 Defensive Teams:"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</details>
+<details open="" class="code-fold">
+<summary>Show Python Code</summary>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb15"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(team_summary.head(<span class="dv">6</span>).<span class="bu">round</span>(<span class="dv">3</span>).to_markdown(index<span class="op">=</span><span class="va">False</span>))</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</details>
+</div>
+<p>From the data above, which was the third best team on offensive EPA/play from these data? Let’s make a better table.</p>
+<div class="cell">
+<details open="" class="code-fold">
+<summary>Show Python Code</summary>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb16"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Reorder the data for display</span></span>
+<span id="cb16-2"><a href="#cb16-2" aria-hidden="true" tabindex="-1"></a>team_summary <span class="op">=</span> team_summary.sort_values(by<span class="op">=</span><span class="st">'off_epa_per_play'</span>, ascending<span class="op">=</span><span class="va">False</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</details>
+</div>
+<div class="cell">
+<details open="" class="code-fold">
+<summary>Show Python Code</summary>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb17"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb17-1"><a href="#cb17-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Create a pretty table using Great Tables</span></span>
+<span id="cb17-2"><a href="#cb17-2" aria-hidden="true" tabindex="-1"></a>(</span>
+<span id="cb17-3"><a href="#cb17-3" aria-hidden="true" tabindex="-1"></a>    GT(team_summary)</span>
+<span id="cb17-4"><a href="#cb17-4" aria-hidden="true" tabindex="-1"></a>    .tab_header(</span>
+<span id="cb17-5"><a href="#cb17-5" aria-hidden="true" tabindex="-1"></a>        title<span class="op">=</span>md(<span class="st">"**NFL Team Performance Summary: 2025 (Weeks 1–4)**"</span>),</span>
+<span id="cb17-6"><a href="#cb17-6" aria-hidden="true" tabindex="-1"></a>        subtitle<span class="op">=</span><span class="st">"Offensive and Defensive Efficiency Metrics Calculated via Python"</span></span>
+<span id="cb17-7"><a href="#cb17-7" aria-hidden="true" tabindex="-1"></a>    )</span>
+<span id="cb17-8"><a href="#cb17-8" aria-hidden="true" tabindex="-1"></a>    .cols_label(</span>
+<span id="cb17-9"><a href="#cb17-9" aria-hidden="true" tabindex="-1"></a>        team<span class="op">=</span><span class="st">"Team"</span>,</span>
+<span id="cb17-10"><a href="#cb17-10" aria-hidden="true" tabindex="-1"></a>        off_plays<span class="op">=</span><span class="st">"Off. Plays"</span>,</span>
+<span id="cb17-11"><a href="#cb17-11" aria-hidden="true" tabindex="-1"></a>        off_epa_per_play<span class="op">=</span><span class="st">"Off EPA/Play"</span>,</span>
+<span id="cb17-12"><a href="#cb17-12" aria-hidden="true" tabindex="-1"></a>        pass_epa<span class="op">=</span><span class="st">"Pass EPA"</span>,</span>
+<span id="cb17-13"><a href="#cb17-13" aria-hidden="true" tabindex="-1"></a>        rush_epa<span class="op">=</span><span class="st">"Rush EPA"</span>,</span>
+<span id="cb17-14"><a href="#cb17-14" aria-hidden="true" tabindex="-1"></a>        off_success_rate<span class="op">=</span><span class="st">"Off. Success Rate"</span>,</span>
+<span id="cb17-15"><a href="#cb17-15" aria-hidden="true" tabindex="-1"></a>        dropback_pct<span class="op">=</span><span class="st">"Pass Rate"</span>,</span>
+<span id="cb17-16"><a href="#cb17-16" aria-hidden="true" tabindex="-1"></a>        def_epa_allowed<span class="op">=</span><span class="st">"Def EPA/Play"</span>,</span>
+<span id="cb17-17"><a href="#cb17-17" aria-hidden="true" tabindex="-1"></a>        def_success_rate_allowed<span class="op">=</span><span class="st">"Def. Success Rate"</span></span>
+<span id="cb17-18"><a href="#cb17-18" aria-hidden="true" tabindex="-1"></a>    )</span>
+<span id="cb17-19"><a href="#cb17-19" aria-hidden="true" tabindex="-1"></a>    .cols_hide(columns<span class="op">=</span>[<span class="st">"def_plays"</span>, <span class="st">"def_pass_epa_allowed"</span>, <span class="st">"def_rush_epa_allowed"</span>])</span>
+<span id="cb17-20"><a href="#cb17-20" aria-hidden="true" tabindex="-1"></a>    .fmt_number(</span>
+<span id="cb17-21"><a href="#cb17-21" aria-hidden="true" tabindex="-1"></a>        columns<span class="op">=</span>[<span class="st">"off_epa_per_play"</span>, <span class="st">"pass_epa"</span>, <span class="st">"rush_epa"</span>, <span class="st">"def_epa_allowed"</span>],</span>
+<span id="cb17-22"><a href="#cb17-22" aria-hidden="true" tabindex="-1"></a>        decimals<span class="op">=</span><span class="dv">3</span></span>
+<span id="cb17-23"><a href="#cb17-23" aria-hidden="true" tabindex="-1"></a>    )</span>
+<span id="cb17-24"><a href="#cb17-24" aria-hidden="true" tabindex="-1"></a>    .fmt_percent(</span>
+<span id="cb17-25"><a href="#cb17-25" aria-hidden="true" tabindex="-1"></a>        columns<span class="op">=</span>[<span class="st">"off_success_rate"</span>, <span class="st">"dropback_pct"</span>, <span class="st">"def_success_rate_allowed"</span>],</span>
+<span id="cb17-26"><a href="#cb17-26" aria-hidden="true" tabindex="-1"></a>        decimals<span class="op">=</span><span class="dv">1</span></span>
+<span id="cb17-27"><a href="#cb17-27" aria-hidden="true" tabindex="-1"></a>    )</span>
+<span id="cb17-28"><a href="#cb17-28" aria-hidden="true" tabindex="-1"></a>    .tab_source_note(</span>
+<span id="cb17-29"><a href="#cb17-29" aria-hidden="true" tabindex="-1"></a>        source_note<span class="op">=</span><span class="st">"Data Source: nfl_data_py | Scrimmage plays only (Weeks 1–4, 2025)"</span></span>
+<span id="cb17-30"><a href="#cb17-30" aria-hidden="true" tabindex="-1"></a>    )</span>
+<span id="cb17-31"><a href="#cb17-31" aria-hidden="true" tabindex="-1"></a>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</details>
+<div class="cell-output-display">
+<div id="nsthujcryk" style="padding-left:0px;padding-right:0px;padding-top:10px;padding-bottom:10px;overflow-x:auto;overflow-y:auto;width:auto;height:auto;">
+<style>
+#nsthujcryk table {
+          font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Helvetica Neue', 'Fira Sans', 'Droid Sans', Arial, sans-serif;
+          -webkit-font-smoothing: antialiased;
+          -moz-osx-font-smoothing: grayscale;
+        }
+
+#nsthujcryk thead, tbody, tfoot, tr, td, th { border-style: none; }
+ tr { background-color: transparent; }
+#nsthujcryk p { margin: 0; padding: 0; }
+ #nsthujcryk .gt_table { display: table; border-collapse: collapse; line-height: normal; margin-left: auto; margin-right: auto; color: #333333; font-size: 16px; font-weight: normal; font-style: normal; background-color: #FFFFFF; width: auto; border-top-style: solid; border-top-width: 2px; border-top-color: #A8A8A8; border-right-style: none; border-right-width: 2px; border-right-color: #D3D3D3; border-bottom-style: solid; border-bottom-width: 2px; border-bottom-color: #A8A8A8; border-left-style: none; border-left-width: 2px; border-left-color: #D3D3D3; }
+ #nsthujcryk .gt_caption { padding-top: 4px; padding-bottom: 4px; }
+ #nsthujcryk .gt_title { color: #333333; font-size: 125%; font-weight: initial; padding-top: 4px; padding-bottom: 4px; padding-left: 5px; padding-right: 5px; border-bottom-color: #FFFFFF; border-bottom-width: 0; }
+ #nsthujcryk .gt_subtitle { color: #333333; font-size: 85%; font-weight: initial; padding-top: 3px; padding-bottom: 5px; padding-left: 5px; padding-right: 5px; border-top-color: #FFFFFF; border-top-width: 0; }
+ #nsthujcryk .gt_heading { background-color: #FFFFFF; text-align: center; border-bottom-color: #FFFFFF; border-left-style: none; border-left-width: 1px; border-left-color: #D3D3D3; border-right-style: none; border-right-width: 1px; border-right-color: #D3D3D3; }
+ #nsthujcryk .gt_bottom_border { border-bottom-style: solid; border-bottom-width: 2px; border-bottom-color: #D3D3D3; }
+ #nsthujcryk .gt_col_headings { border-top-style: solid; border-top-width: 2px; border-top-color: #D3D3D3; border-bottom-style: solid; border-bottom-width: 2px; border-bottom-color: #D3D3D3; border-left-style: none; border-left-width: 1px; border-left-color: #D3D3D3; border-right-style: none; border-right-width: 1px; border-right-color: #D3D3D3; }
+ #nsthujcryk .gt_col_heading { color: #333333; background-color: #FFFFFF; font-size: 100%; font-weight: normal; text-transform: inherit; border-left-style: none; border-left-width: 1px; border-left-color: #D3D3D3; border-right-style: none; border-right-width: 1px; border-right-color: #D3D3D3; vertical-align: bottom; padding-top: 5px; padding-bottom: 5px; padding-left: 5px; padding-right: 5px; overflow-x: hidden; }
+ #nsthujcryk .gt_column_spanner_outer { color: #333333; background-color: #FFFFFF; font-size: 100%; font-weight: normal; text-transform: inherit; padding-top: 0; padding-bottom: 0; padding-left: 4px; padding-right: 4px; }
+ #nsthujcryk .gt_column_spanner_outer:first-child { padding-left: 0; }
+ #nsthujcryk .gt_column_spanner_outer:last-child { padding-right: 0; }
+ #nsthujcryk .gt_column_spanner { border-bottom-style: solid; border-bottom-width: 2px; border-bottom-color: #D3D3D3; vertical-align: bottom; padding-top: 5px; padding-bottom: 5px; overflow-x: hidden; display: inline-block; width: 100%; }
+ #nsthujcryk .gt_spanner_row { border-bottom-style: hidden; }
+ #nsthujcryk .gt_group_heading { padding-top: 8px; padding-bottom: 8px; padding-left: 5px; padding-right: 5px; color: #333333; background-color: #FFFFFF; font-size: 100%; font-weight: initial; text-transform: inherit; border-top-style: solid; border-top-width: 2px; border-top-color: #D3D3D3; border-bottom-style: solid; border-bottom-width: 2px; border-bottom-color: #D3D3D3; border-left-style: none; border-left-width: 1px; border-left-color: #D3D3D3; border-right-style: none; border-right-width: 1px; border-right-color: #D3D3D3; vertical-align: middle; text-align: left; }
+ #nsthujcryk .gt_empty_group_heading { padding: 0.5px; color: #333333; background-color: #FFFFFF; font-size: 100%; font-weight: initial; border-top-style: solid; border-top-width: 2px; border-top-color: #D3D3D3; border-bottom-style: solid; border-bottom-width: 2px; border-bottom-color: #D3D3D3; vertical-align: middle; }
+ #nsthujcryk .gt_from_md> :first-child { margin-top: 0; }
+ #nsthujcryk .gt_from_md> :last-child { margin-bottom: 0; }
+ #nsthujcryk .gt_row { padding-top: 8px; padding-bottom: 8px; padding-left: 5px; padding-right: 5px; margin: 10px; border-top-style: solid; border-top-width: 1px; border-top-color: #D3D3D3; border-left-style: none; border-left-width: 1px; border-left-color: #D3D3D3; border-right-style: none; border-right-width: 1px; border-right-color: #D3D3D3; vertical-align: middle; overflow-x: hidden; }
+ #nsthujcryk .gt_stub { color: #333333; background-color: #FFFFFF; font-size: 100%; font-weight: initial; text-transform: inherit; border-right-style: solid; border-right-width: 2px; border-right-color: #D3D3D3; padding-left: 5px; padding-right: 5px; }
+ #nsthujcryk .gt_indent_1 { text-indent: 5px; }
+ #nsthujcryk .gt_indent_2 { text-indent: calc(5px * 2); }
+ #nsthujcryk .gt_indent_3 { text-indent: calc(5px * 3); }
+ #nsthujcryk .gt_indent_4 { text-indent: calc(5px * 4); }
+ #nsthujcryk .gt_indent_5 { text-indent: calc(5px * 5); }
+ #nsthujcryk .gt_stub_row_group { color: #333333; background-color: #FFFFFF; font-size: 100%; font-weight: initial; text-transform: inherit; border-right-style: solid; border-right-width: 2px; border-right-color: #D3D3D3; padding-left: 5px; padding-right: 5px; vertical-align: top; }
+ #nsthujcryk .gt_row_group_first td { border-top-width: 2px; }
+ #nsthujcryk .gt_row_group_first th { border-top-width: 2px; }
+ #nsthujcryk .gt_striped { color: #333333; background-color: #F4F4F4; }
+ #nsthujcryk .gt_table_body { border-top-style: solid; border-top-width: 2px; border-top-color: #D3D3D3; border-bottom-style: solid; border-bottom-width: 2px; border-bottom-color: #D3D3D3; }
+ #nsthujcryk .gt_summary_row { color: #333333; background-color: #FFFFFF; text-transform: inherit; padding-top: 8px; padding-bottom: 8px; padding-left: 5px; padding-right: 5px; }
+ #nsthujcryk .gt_first_summary_row { border-top-style: solid; border-top-width: 2px; border-top-color: #D3D3D3; }
+ #nsthujcryk .gt_last_summary_row_top { border-bottom-style: solid; border-bottom-width: 2px; border-bottom-color: #D3D3D3; }
+ #nsthujcryk .gt_grand_summary_row { color: #333333; background-color: #FFFFFF; text-transform: inherit; padding-top: 8px; padding-bottom: 8px; padding-left: 5px; padding-right: 5px; }
+ #nsthujcryk .gt_first_grand_summary_row_bottom { border-top-style: double; border-top-width: 6px; border-top-color: #D3D3D3; }
+ #nsthujcryk .gt_last_grand_summary_row_top { border-bottom-style: double; border-bottom-width: 6px; border-bottom-color: #D3D3D3; }
+ #nsthujcryk .gt_sourcenotes { color: #333333; background-color: #FFFFFF; border-bottom-style: none; border-bottom-width: 2px; border-bottom-color: #D3D3D3; border-left-style: none; border-left-width: 2px; border-left-color: #D3D3D3; border-right-style: none; border-right-width: 2px; border-right-color: #D3D3D3; }
+ #nsthujcryk .gt_sourcenote { font-size: 90%; padding-top: 4px; padding-bottom: 4px; padding-left: 5px; padding-right: 5px; text-align: left; }
+ #nsthujcryk .gt_left { text-align: left; }
+ #nsthujcryk .gt_center { text-align: center; }
+ #nsthujcryk .gt_right { text-align: right; font-variant-numeric: tabular-nums; }
+ #nsthujcryk .gt_font_normal { font-weight: normal; }
+ #nsthujcryk .gt_font_bold { font-weight: bold; }
+ #nsthujcryk .gt_font_italic { font-style: italic; }
+ #nsthujcryk .gt_super { font-size: 65%; }
+ #nsthujcryk .gt_footnotes { color: font-color(#FFFFFF); background-color: #FFFFFF; border-bottom-style: none; border-bottom-width: 2px; border-bottom-color: #D3D3D3; border-left-style: none; border-left-width: 2px; border-left-color: #D3D3D3; border-right-style: none; border-right-width: 2px; border-right-color: #D3D3D3; }
+ #nsthujcryk .gt_footnote { margin: 0px; font-size: 90%; padding-top: 4px; padding-bottom: 4px; padding-left: 5px; padding-right: 5px; }
+ #nsthujcryk .gt_sourcenotes { color: #333333; background-color: #FFFFFF; border-bottom-style: none; border-bottom-width: 2px; border-bottom-color: #D3D3D3; border-left-style: none; border-left-width: 2px; border-left-color: #D3D3D3; border-right-style: none; border-right-width: 2px; border-right-color: #D3D3D3; }
+ #nsthujcryk .gt_sourcenote { font-size: 90%; padding-top: 4px; padding-bottom: 4px; padding-left: 5px; padding-right: 5px; text-align: left; }
+ #nsthujcryk .gt_footnote_marks { font-size: 75%; vertical-align: 0.4em; position: initial; }
+ #nsthujcryk .gt_asterisk { font-size: 100%; vertical-align: 0; }
+ 
+</style>
+
+<table class="gt_table caption-top table table-sm table-striped small" data-quarto-bootstrap="false">
+<thead>
+<tr class="gt_heading header">
+<td colspan="9" class="gt_heading gt_title gt_font_normal"><strong>NFL Team Performance Summary: 2025 (Weeks 1–4)</strong></td>
+</tr>
+<tr class="gt_heading even">
+<td colspan="9" class="gt_heading gt_subtitle gt_font_normal gt_bottom_border">Offensive and Defensive Efficiency Metrics Calculated via Python</td>
+</tr>
+<tr class="gt_col_headings header">
+<th id="team" class="gt_col_heading gt_columns_bottom_border gt_left" data-quarto-table-cell-role="th" scope="col">Team</th>
+<th id="off_plays" class="gt_col_heading gt_columns_bottom_border gt_right" data-quarto-table-cell-role="th" scope="col">Off. Plays</th>
+<th id="off_epa_per_play" class="gt_col_heading gt_columns_bottom_border gt_right" data-quarto-table-cell-role="th" scope="col">Off EPA/Play</th>
+<th id="pass_epa" class="gt_col_heading gt_columns_bottom_border gt_right" data-quarto-table-cell-role="th" scope="col">Pass EPA</th>
+<th id="rush_epa" class="gt_col_heading gt_columns_bottom_border gt_right" data-quarto-table-cell-role="th" scope="col">Rush EPA</th>
+<th id="off_success_rate" class="gt_col_heading gt_columns_bottom_border gt_right" data-quarto-table-cell-role="th" scope="col">Off. Success Rate</th>
+<th id="dropback_pct" class="gt_col_heading gt_columns_bottom_border gt_right" data-quarto-table-cell-role="th" scope="col">Pass Rate</th>
+<th id="def_epa_allowed" class="gt_col_heading gt_columns_bottom_border gt_right" data-quarto-table-cell-role="th" scope="col">Def EPA/Play</th>
+<th id="def_success_rate_allowed" class="gt_col_heading gt_columns_bottom_border gt_right" data-quarto-table-cell-role="th" scope="col">Def. Success Rate</th>
+</tr>
+</thead>
+<tbody class="gt_table_body">
+<tr class="odd">
+<td class="gt_row gt_left">BUF</td>
+<td class="gt_row gt_right">268.0</td>
+<td class="gt_row gt_right">0.230</td>
+<td class="gt_row gt_right">0.332</td>
+<td class="gt_row gt_right">0.091</td>
+<td class="gt_row gt_right">48.9%</td>
+<td class="gt_row gt_right">57.5%</td>
+<td class="gt_row gt_right">0.012</td>
+<td class="gt_row gt_right">42.0%</td>
+</tr>
+<tr class="even">
+<td class="gt_row gt_left">GB</td>
+<td class="gt_row gt_right">259.0</td>
+<td class="gt_row gt_right">0.175</td>
+<td class="gt_row gt_right">0.333</td>
+<td class="gt_row gt_right">−0.031</td>
+<td class="gt_row gt_right">48.3%</td>
+<td class="gt_row gt_right">56.4%</td>
+<td class="gt_row gt_right">0.009</td>
+<td class="gt_row gt_right">42.2%</td>
+</tr>
+<tr class="odd">
+<td class="gt_row gt_left">IND</td>
+<td class="gt_row gt_right">258.0</td>
+<td class="gt_row gt_right">0.153</td>
+<td class="gt_row gt_right">0.239</td>
+<td class="gt_row gt_right">0.045</td>
+<td class="gt_row gt_right">49.6%</td>
+<td class="gt_row gt_right">55.4%</td>
+<td class="gt_row gt_right">−0.024</td>
+<td class="gt_row gt_right">47.6%</td>
+</tr>
+<tr class="even">
+<td class="gt_row gt_left">DAL</td>
+<td class="gt_row gt_right">292.0</td>
+<td class="gt_row gt_right">0.146</td>
+<td class="gt_row gt_right">0.206</td>
+<td class="gt_row gt_right">0.026</td>
+<td class="gt_row gt_right">49.7%</td>
+<td class="gt_row gt_right">66.4%</td>
+<td class="gt_row gt_right">0.261</td>
+<td class="gt_row gt_right">50.6%</td>
+</tr>
+<tr class="odd">
+<td class="gt_row gt_left">DET</td>
+<td class="gt_row gt_right">250.0</td>
+<td class="gt_row gt_right">0.141</td>
+<td class="gt_row gt_right">0.288</td>
+<td class="gt_row gt_right">−0.028</td>
+<td class="gt_row gt_right">48.8%</td>
+<td class="gt_row gt_right">53.6%</td>
+<td class="gt_row gt_right">−0.075</td>
+<td class="gt_row gt_right">38.2%</td>
+</tr>
+<tr class="even">
+<td class="gt_row gt_left">BAL</td>
+<td class="gt_row gt_right">215.0</td>
+<td class="gt_row gt_right">0.125</td>
+<td class="gt_row gt_right">0.174</td>
+<td class="gt_row gt_right">0.032</td>
+<td class="gt_row gt_right">45.6%</td>
+<td class="gt_row gt_right">65.6%</td>
+<td class="gt_row gt_right">0.138</td>
+<td class="gt_row gt_right">46.9%</td>
+</tr>
+<tr class="odd">
+<td class="gt_row gt_left">KC</td>
+<td class="gt_row gt_right">260.0</td>
+<td class="gt_row gt_right">0.118</td>
+<td class="gt_row gt_right">0.196</td>
+<td class="gt_row gt_right">−0.051</td>
+<td class="gt_row gt_right">45.0%</td>
+<td class="gt_row gt_right">68.5%</td>
+<td class="gt_row gt_right">0.023</td>
+<td class="gt_row gt_right">46.3%</td>
+</tr>
+<tr class="even">
+<td class="gt_row gt_left">WAS</td>
+<td class="gt_row gt_right">248.0</td>
+<td class="gt_row gt_right">0.096</td>
+<td class="gt_row gt_right">0.101</td>
+<td class="gt_row gt_right">0.089</td>
+<td class="gt_row gt_right">46.8%</td>
+<td class="gt_row gt_right">62.9%</td>
+<td class="gt_row gt_right">0.064</td>
+<td class="gt_row gt_right">43.1%</td>
+</tr>
+<tr class="odd">
+<td class="gt_row gt_left">NE</td>
+<td class="gt_row gt_right">248.0</td>
+<td class="gt_row gt_right">0.086</td>
+<td class="gt_row gt_right">0.301</td>
+<td class="gt_row gt_right">−0.298</td>
+<td class="gt_row gt_right">44.8%</td>
+<td class="gt_row gt_right">64.1%</td>
+<td class="gt_row gt_right">0.051</td>
+<td class="gt_row gt_right">47.9%</td>
+</tr>
+<tr class="even">
+<td class="gt_row gt_left">LA</td>
+<td class="gt_row gt_right">255.0</td>
+<td class="gt_row gt_right">0.070</td>
+<td class="gt_row gt_right">0.150</td>
+<td class="gt_row gt_right">−0.049</td>
+<td class="gt_row gt_right">48.6%</td>
+<td class="gt_row gt_right">60.0%</td>
+<td class="gt_row gt_right">−0.096</td>
+<td class="gt_row gt_right">40.4%</td>
+</tr>
+<tr class="odd">
+<td class="gt_row gt_left">PIT</td>
+<td class="gt_row gt_right">219.0</td>
+<td class="gt_row gt_right">0.059</td>
+<td class="gt_row gt_right">0.121</td>
+<td class="gt_row gt_right">−0.031</td>
+<td class="gt_row gt_right">46.6%</td>
+<td class="gt_row gt_right">59.4%</td>
+<td class="gt_row gt_right">0.044</td>
+<td class="gt_row gt_right">46.0%</td>
+</tr>
+<tr class="even">
+<td class="gt_row gt_left">DEN</td>
+<td class="gt_row gt_right">262.0</td>
+<td class="gt_row gt_right">0.048</td>
+<td class="gt_row gt_right">0.106</td>
+<td class="gt_row gt_right">−0.049</td>
+<td class="gt_row gt_right">42.0%</td>
+<td class="gt_row gt_right">62.2%</td>
+<td class="gt_row gt_right">−0.096</td>
+<td class="gt_row gt_right">38.7%</td>
+</tr>
+<tr class="odd">
+<td class="gt_row gt_left">TB</td>
+<td class="gt_row gt_right">279.0</td>
+<td class="gt_row gt_right">0.039</td>
+<td class="gt_row gt_right">0.163</td>
+<td class="gt_row gt_right">−0.167</td>
+<td class="gt_row gt_right">41.6%</td>
+<td class="gt_row gt_right">62.4%</td>
+<td class="gt_row gt_right">−0.045</td>
+<td class="gt_row gt_right">43.5%</td>
+</tr>
+<tr class="even">
+<td class="gt_row gt_left">SEA</td>
+<td class="gt_row gt_right">238.0</td>
+<td class="gt_row gt_right">0.035</td>
+<td class="gt_row gt_right">0.237</td>
+<td class="gt_row gt_right">−0.154</td>
+<td class="gt_row gt_right">45.0%</td>
+<td class="gt_row gt_right">48.3%</td>
+<td class="gt_row gt_right">−0.049</td>
+<td class="gt_row gt_right">42.0%</td>
+</tr>
+<tr class="odd">
+<td class="gt_row gt_left">ARI</td>
+<td class="gt_row gt_right">253.0</td>
+<td class="gt_row gt_right">0.030</td>
+<td class="gt_row gt_right">0.109</td>
+<td class="gt_row gt_right">−0.131</td>
+<td class="gt_row gt_right">40.7%</td>
+<td class="gt_row gt_right">67.2%</td>
+<td class="gt_row gt_right">0.001</td>
+<td class="gt_row gt_right">46.2%</td>
+</tr>
+<tr class="even">
+<td class="gt_row gt_left">JAX</td>
+<td class="gt_row gt_right">267.0</td>
+<td class="gt_row gt_right">0.029</td>
+<td class="gt_row gt_right">0.053</td>
+<td class="gt_row gt_right">−0.007</td>
+<td class="gt_row gt_right">44.6%</td>
+<td class="gt_row gt_right">58.8%</td>
+<td class="gt_row gt_right">−0.099</td>
+<td class="gt_row gt_right">40.2%</td>
+</tr>
+<tr class="odd">
+<td class="gt_row gt_left">PHI</td>
+<td class="gt_row gt_right">241.0</td>
+<td class="gt_row gt_right">0.028</td>
+<td class="gt_row gt_right">0.032</td>
+<td class="gt_row gt_right">0.024</td>
+<td class="gt_row gt_right">44.4%</td>
+<td class="gt_row gt_right">53.9%</td>
+<td class="gt_row gt_right">−0.032</td>
+<td class="gt_row gt_right">44.0%</td>
+</tr>
+<tr class="even">
+<td class="gt_row gt_left">LAC</td>
+<td class="gt_row gt_right">267.0</td>
+<td class="gt_row gt_right">0.028</td>
+<td class="gt_row gt_right">0.096</td>
+<td class="gt_row gt_right">−0.118</td>
+<td class="gt_row gt_right">45.7%</td>
+<td class="gt_row gt_right">68.2%</td>
+<td class="gt_row gt_right">−0.100</td>
+<td class="gt_row gt_right">37.7%</td>
+</tr>
+<tr class="odd">
+<td class="gt_row gt_left">SF</td>
+<td class="gt_row gt_right">270.0</td>
+<td class="gt_row gt_right">0.022</td>
+<td class="gt_row gt_right">0.145</td>
+<td class="gt_row gt_right">−0.197</td>
+<td class="gt_row gt_right">48.9%</td>
+<td class="gt_row gt_right">64.1%</td>
+<td class="gt_row gt_right">−0.021</td>
+<td class="gt_row gt_right">44.0%</td>
+</tr>
+<tr class="even">
+<td class="gt_row gt_left">MIA</td>
+<td class="gt_row gt_right">223.0</td>
+<td class="gt_row gt_right">0.012</td>
+<td class="gt_row gt_right">0.026</td>
+<td class="gt_row gt_right">−0.014</td>
+<td class="gt_row gt_right">42.2%</td>
+<td class="gt_row gt_right">65.0%</td>
+<td class="gt_row gt_right">0.214</td>
+<td class="gt_row gt_right">53.0%</td>
+</tr>
+<tr class="odd">
+<td class="gt_row gt_left">ATL</td>
+<td class="gt_row gt_right">268.0</td>
+<td class="gt_row gt_right">−0.006</td>
+<td class="gt_row gt_right">0.044</td>
+<td class="gt_row gt_right">−0.072</td>
+<td class="gt_row gt_right">44.4%</td>
+<td class="gt_row gt_right">56.3%</td>
+<td class="gt_row gt_right">−0.028</td>
+<td class="gt_row gt_right">44.2%</td>
+</tr>
+<tr class="even">
+<td class="gt_row gt_left">NYJ</td>
+<td class="gt_row gt_right">241.0</td>
+<td class="gt_row gt_right">−0.010</td>
+<td class="gt_row gt_right">0.061</td>
+<td class="gt_row gt_right">−0.121</td>
+<td class="gt_row gt_right">48.1%</td>
+<td class="gt_row gt_right">61.0%</td>
+<td class="gt_row gt_right">0.130</td>
+<td class="gt_row gt_right">40.4%</td>
+</tr>
+<tr class="odd">
+<td class="gt_row gt_left">NYG</td>
+<td class="gt_row gt_right">277.0</td>
+<td class="gt_row gt_right">−0.032</td>
+<td class="gt_row gt_right">0.009</td>
+<td class="gt_row gt_right">−0.102</td>
+<td class="gt_row gt_right">42.2%</td>
+<td class="gt_row gt_right">62.5%</td>
+<td class="gt_row gt_right">0.104</td>
+<td class="gt_row gt_right">48.3%</td>
+</tr>
+<tr class="even">
+<td class="gt_row gt_left">CHI</td>
+<td class="gt_row gt_right">259.0</td>
+<td class="gt_row gt_right">−0.035</td>
+<td class="gt_row gt_right">0.089</td>
+<td class="gt_row gt_right">−0.252</td>
+<td class="gt_row gt_right">40.5%</td>
+<td class="gt_row gt_right">63.7%</td>
+<td class="gt_row gt_right">0.032</td>
+<td class="gt_row gt_right">50.0%</td>
+</tr>
+<tr class="odd">
+<td class="gt_row gt_left">CAR</td>
+<td class="gt_row gt_right">273.0</td>
+<td class="gt_row gt_right">−0.038</td>
+<td class="gt_row gt_right">0.004</td>
+<td class="gt_row gt_right">−0.118</td>
+<td class="gt_row gt_right">45.4%</td>
+<td class="gt_row gt_right">65.2%</td>
+<td class="gt_row gt_right">0.022</td>
+<td class="gt_row gt_right">41.5%</td>
+</tr>
+<tr class="even">
+<td class="gt_row gt_left">NO</td>
+<td class="gt_row gt_right">284.0</td>
+<td class="gt_row gt_right">−0.076</td>
+<td class="gt_row gt_right">−0.052</td>
+<td class="gt_row gt_right">−0.116</td>
+<td class="gt_row gt_right">43.3%</td>
+<td class="gt_row gt_right">62.7%</td>
+<td class="gt_row gt_right">0.104</td>
+<td class="gt_row gt_right">45.7%</td>
+</tr>
+<tr class="odd">
+<td class="gt_row gt_left">MIN</td>
+<td class="gt_row gt_right">238.0</td>
+<td class="gt_row gt_right">−0.076</td>
+<td class="gt_row gt_right">−0.102</td>
+<td class="gt_row gt_right">−0.033</td>
+<td class="gt_row gt_right">44.5%</td>
+<td class="gt_row gt_right">61.8%</td>
+<td class="gt_row gt_right">−0.142</td>
+<td class="gt_row gt_right">43.1%</td>
+</tr>
+<tr class="even">
+<td class="gt_row gt_left">HOU</td>
+<td class="gt_row gt_right">243.0</td>
+<td class="gt_row gt_right">−0.076</td>
+<td class="gt_row gt_right">−0.052</td>
+<td class="gt_row gt_right">−0.116</td>
+<td class="gt_row gt_right">37.4%</td>
+<td class="gt_row gt_right">61.7%</td>
+<td class="gt_row gt_right">−0.072</td>
+<td class="gt_row gt_right">43.0%</td>
+</tr>
+<tr class="odd">
+<td class="gt_row gt_left">LV</td>
+<td class="gt_row gt_right">248.0</td>
+<td class="gt_row gt_right">−0.107</td>
+<td class="gt_row gt_right">−0.016</td>
+<td class="gt_row gt_right">−0.244</td>
+<td class="gt_row gt_right">39.9%</td>
+<td class="gt_row gt_right">60.1%</td>
+<td class="gt_row gt_right">−0.007</td>
+<td class="gt_row gt_right">43.0%</td>
+</tr>
+<tr class="even">
+<td class="gt_row gt_left">CLE</td>
+<td class="gt_row gt_right">280.0</td>
+<td class="gt_row gt_right">−0.193</td>
+<td class="gt_row gt_right">−0.272</td>
+<td class="gt_row gt_right">−0.026</td>
+<td class="gt_row gt_right">35.0%</td>
+<td class="gt_row gt_right">67.9%</td>
+<td class="gt_row gt_right">−0.042</td>
+<td class="gt_row gt_right">40.1%</td>
+</tr>
+<tr class="odd">
+<td class="gt_row gt_left">CIN</td>
+<td class="gt_row gt_right">224.0</td>
+<td class="gt_row gt_right">−0.224</td>
+<td class="gt_row gt_right">−0.289</td>
+<td class="gt_row gt_right">−0.098</td>
+<td class="gt_row gt_right">39.3%</td>
+<td class="gt_row gt_right">65.6%</td>
+<td class="gt_row gt_right">0.090</td>
+<td class="gt_row gt_right">47.4%</td>
+</tr>
+<tr class="even">
+<td class="gt_row gt_left">TEN</td>
+<td class="gt_row gt_right">242.0</td>
+<td class="gt_row gt_right">−0.237</td>
+<td class="gt_row gt_right">−0.286</td>
+<td class="gt_row gt_right">−0.137</td>
+<td class="gt_row gt_right">36.4%</td>
+<td class="gt_row gt_right">66.9%</td>
+<td class="gt_row gt_right">0.152</td>
+<td class="gt_row gt_right">45.7%</td>
+</tr>
+</tbody><tfoot>
+<tr class="gt_sourcenotes odd">
+<td colspan="9" class="gt_sourcenote"><span class="gt_from_md">Data Source: nfl_data_py | Scrimmage plays only (Weeks 1–4, 2025)</span></td>
+</tr>
+</tfoot>
+
+</table>
+
+
+</div>
+</div>
+</div>
+<p>Let’s visualize some of these data.</p>
+<div class="cell">
+<details open="" class="code-fold">
+<summary>Show Python Code</summary>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb18"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb18-1"><a href="#cb18-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Compute tier averages for reference lines</span></span>
+<span id="cb18-2"><a href="#cb18-2" aria-hidden="true" tabindex="-1"></a>avg_off_epa <span class="op">=</span> team_summary[<span class="st">'off_epa_per_play'</span>].mean()</span>
+<span id="cb18-3"><a href="#cb18-3" aria-hidden="true" tabindex="-1"></a>avg_def_epa <span class="op">=</span> team_summary[<span class="st">'def_epa_allowed'</span>].mean()</span>
+<span id="cb18-4"><a href="#cb18-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-5"><a href="#cb18-5" aria-hidden="true" tabindex="-1"></a>plt.figure(figsize<span class="op">=</span>(<span class="dv">10</span>, <span class="dv">7</span>))</span>
+<span id="cb18-6"><a href="#cb18-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-7"><a href="#cb18-7" aria-hidden="true" tabindex="-1"></a><span class="co"># Scatter plot</span></span>
+<span id="cb18-8"><a href="#cb18-8" aria-hidden="true" tabindex="-1"></a>plt.scatter(team_summary[<span class="st">'off_epa_per_play'</span>], team_summary[<span class="st">'def_epa_allowed'</span>], color<span class="op">=</span><span class="st">'skyblue'</span>, edgecolors<span class="op">=</span><span class="st">'navy'</span>, s<span class="op">=</span><span class="dv">80</span>, alpha<span class="op">=</span><span class="fl">0.8</span>)</span>
+<span id="cb18-9"><a href="#cb18-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-10"><a href="#cb18-10" aria-hidden="true" tabindex="-1"></a><span class="co"># Reference quadrant lines</span></span>
+<span id="cb18-11"><a href="#cb18-11" aria-hidden="true" tabindex="-1"></a>plt.axhline(avg_def_epa, color<span class="op">=</span><span class="st">'gray'</span>, linestyle<span class="op">=</span><span class="st">'--'</span>, linewidth<span class="op">=</span><span class="dv">1</span>)</span>
+<span id="cb18-12"><a href="#cb18-12" aria-hidden="true" tabindex="-1"></a>plt.axvline(avg_off_epa, color<span class="op">=</span><span class="st">'gray'</span>, linestyle<span class="op">=</span><span class="st">'--'</span>, linewidth<span class="op">=</span><span class="dv">1</span>)</span>
+<span id="cb18-13"><a href="#cb18-13" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-14"><a href="#cb18-14" aria-hidden="true" tabindex="-1"></a><span class="co"># Annotate team labels using adjustText to prevent overlapping</span></span>
+<span id="cb18-15"><a href="#cb18-15" aria-hidden="true" tabindex="-1"></a>texts <span class="op">=</span> []</span>
+<span id="cb18-16"><a href="#cb18-16" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> _, row <span class="kw">in</span> team_summary.iterrows():</span>
+<span id="cb18-17"><a href="#cb18-17" aria-hidden="true" tabindex="-1"></a>    texts.append(plt.text(row[<span class="st">'off_epa_per_play'</span>], row[<span class="st">'def_epa_allowed'</span>], row[<span class="st">'team'</span>], fontsize<span class="op">=</span><span class="dv">9</span>, fontweight<span class="op">=</span><span class="st">'bold'</span>))</span>
+<span id="cb18-18"><a href="#cb18-18" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-19"><a href="#cb18-19" aria-hidden="true" tabindex="-1"></a>adjust_text(texts, arrowprops<span class="op">=</span><span class="bu">dict</span>(arrowstyle<span class="op">=</span><span class="st">'-'</span>, color<span class="op">=</span><span class="st">'gray'</span>, lw<span class="op">=</span><span class="fl">0.5</span>))</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</details>
+<details open="" class="code-fold">
+<summary>Show Python Code</summary>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb19"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb19-1"><a href="#cb19-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Invert Y-axis so lower EPA allowed (better defense) is higher up</span></span>
+<span id="cb19-2"><a href="#cb19-2" aria-hidden="true" tabindex="-1"></a>plt.gca().invert_yaxis()</span>
+<span id="cb19-3"><a href="#cb19-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb19-4"><a href="#cb19-4" aria-hidden="true" tabindex="-1"></a>plt.title(<span class="st">"2025 NFL Team Tier Breakdown (Weeks 1–4)"</span>, fontsize<span class="op">=</span><span class="dv">14</span>, fontweight<span class="op">=</span><span class="st">'bold'</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</details>
+<details open="" class="code-fold">
+<summary>Show Python Code</summary>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb20"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb20-1"><a href="#cb20-1" aria-hidden="true" tabindex="-1"></a>plt.suptitle(<span class="st">"Offensive Efficiency vs. Defensive Efficiency"</span>, fontsize<span class="op">=</span><span class="dv">11</span>, color<span class="op">=</span><span class="st">'gray'</span>, y<span class="op">=</span><span class="fl">0.92</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</details>
+<details open="" class="code-fold">
+<summary>Show Python Code</summary>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb21"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb21-1"><a href="#cb21-1" aria-hidden="true" tabindex="-1"></a>plt.xlabel(<span class="st">"Offensive EPA per Play (Higher = Better Offense)"</span>, fontsize<span class="op">=</span><span class="dv">11</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</details>
+<details open="" class="code-fold">
+<summary>Show Python Code</summary>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb22"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb22-1"><a href="#cb22-1" aria-hidden="true" tabindex="-1"></a>plt.ylabel(<span class="st">"Defensive EPA per Play Allowed (Lower = Better Defense)"</span>, fontsize<span class="op">=</span><span class="dv">11</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</details>
+<details open="" class="code-fold">
+<summary>Show Python Code</summary>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb23"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb23-1"><a href="#cb23-1" aria-hidden="true" tabindex="-1"></a>plt.grid(<span class="va">True</span>, linestyle<span class="op">=</span><span class="st">':'</span>, alpha<span class="op">=</span><span class="fl">0.6</span>)</span>
+<span id="cb23-2"><a href="#cb23-2" aria-hidden="true" tabindex="-1"></a>plt.tight_layout()</span>
+<span id="cb23-3"><a href="#cb23-3" aria-hidden="true" tabindex="-1"></a>plt.show()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</details>
+</div>
+<p>Note that the plot above has an unusual y-axis. Why is that?</p>
+</section>
+<section id="tasks" class="level2" data-number="0.1">
+<h2 data-number="0.1" class="anchored" data-anchor-id="tasks"><span class="header-section-number">0.1</span> Tasks</h2>
+<p>In sports analytics, plays occurring when the win probability is near 0% or 100% (“garbage time”) can skew team metrics. Modify the filtering logic to exclude plays where win probability &lt; 0.05 or &gt; 0.95. How does removing garbage time affect the top 3 offensive teams?</p>
+<section id="task-1" class="level4" data-number="0.1.0.1">
+<h4 data-number="0.1.0.1" class="anchored" data-anchor-id="task-1"><span class="header-section-number">0.1.0.1</span> Task 1</h4>
+<p>Write some code to filter out “garbage time”</p>
+<div class="cell">
+<details open="" class="code-fold">
+<summary>Show Python Code</summary>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb24"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb24-1"><a href="#cb24-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Student Workspace: Filter out garbage time</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</details>
+</div>
+<p>Compute updated team summaries and compare results</p>
+</section>
+<section id="task-2" class="level4" data-number="0.1.0.2">
+<h4 data-number="0.1.0.2" class="anchored" data-anchor-id="task-2"><span class="header-section-number">0.1.0.2</span> Task 2</h4>
+<p>Is this the best definition of garbage time? How might you define garbage time?</p>
+<p>##Drive summary data</p>
+<p>So we are going back to the play by play data from 2025 and now we are going to look at some drive summaries.</p>
+<div class="cell">
+<details open="" class="code-fold">
+<summary>Show Python Code</summary>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb25"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb25-1"><a href="#cb25-1" aria-hidden="true" tabindex="-1"></a>pbp_clean <span class="op">=</span> pbp_w1_4[</span>
+<span id="cb25-2"><a href="#cb25-2" aria-hidden="true" tabindex="-1"></a>    (pbp_w1_4[<span class="st">'drive'</span>].notna()) <span class="op">&amp;</span></span>
+<span id="cb25-3"><a href="#cb25-3" aria-hidden="true" tabindex="-1"></a>    (pbp_w1_4[<span class="st">'epa'</span>].notna()) <span class="op">&amp;</span></span>
+<span id="cb25-4"><a href="#cb25-4" aria-hidden="true" tabindex="-1"></a>    (pbp_w1_4[<span class="st">'play'</span>] <span class="op">==</span> <span class="dv">1</span>) <span class="op">&amp;</span></span>
+<span id="cb25-5"><a href="#cb25-5" aria-hidden="true" tabindex="-1"></a>    (pbp_w1_4[<span class="st">'play_type'</span>].isin([<span class="st">'run'</span>, <span class="st">'pass'</span>]))</span>
+<span id="cb25-6"><a href="#cb25-6" aria-hidden="true" tabindex="-1"></a>].copy()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</details>
+</div>
+<p>Next we group the data and since drives are numbered from the beginning of each game, we have to group by game and drive.</p>
+<div class="cell">
+<details open="" class="code-fold">
+<summary>Show Python Code</summary>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb26"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb26-1"><a href="#cb26-1" aria-hidden="true" tabindex="-1"></a>drive_level_data <span class="op">=</span> pbp_clean.groupby([<span class="st">'game_id'</span>, <span class="st">'drive'</span>, <span class="st">'posteam'</span>, <span class="st">'defteam'</span>]).agg(</span>
+<span id="cb26-2"><a href="#cb26-2" aria-hidden="true" tabindex="-1"></a>    drive_total_epa<span class="op">=</span>(<span class="st">'epa'</span>, <span class="st">'sum'</span>),</span>
+<span id="cb26-3"><a href="#cb26-3" aria-hidden="true" tabindex="-1"></a>    drive_mean_epa<span class="op">=</span>(<span class="st">'epa'</span>, <span class="st">'mean'</span>),</span>
+<span id="cb26-4"><a href="#cb26-4" aria-hidden="true" tabindex="-1"></a>    play_count<span class="op">=</span>(<span class="st">'epa'</span>, <span class="st">'count'</span>),</span>
+<span id="cb26-5"><a href="#cb26-5" aria-hidden="true" tabindex="-1"></a>    drive_result<span class="op">=</span>(<span class="st">'fixed_drive_result'</span>, <span class="st">'first'</span>)</span>
+<span id="cb26-6"><a href="#cb26-6" aria-hidden="true" tabindex="-1"></a>).reset_index()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</details>
+</div>
+<p>Next take the drive level data and get some offensive and defensive summaries:</p>
+<div class="cell">
+<details open="" class="code-fold">
+<summary>Show Python Code</summary>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb27"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb27-1"><a href="#cb27-1" aria-hidden="true" tabindex="-1"></a>offense_drive_summary <span class="op">=</span> drive_level_data[drive_level_data[<span class="st">'posteam'</span>].notna()].groupby(<span class="st">'posteam'</span>).agg(</span>
+<span id="cb27-2"><a href="#cb27-2" aria-hidden="true" tabindex="-1"></a>    drives<span class="op">=</span>(<span class="st">'drive_total_epa'</span>, <span class="st">'count'</span>),</span>
+<span id="cb27-3"><a href="#cb27-3" aria-hidden="true" tabindex="-1"></a>    mean_drive_epa<span class="op">=</span>(<span class="st">'drive_total_epa'</span>, <span class="st">'mean'</span>),</span>
+<span id="cb27-4"><a href="#cb27-4" aria-hidden="true" tabindex="-1"></a>    median_drive_epa<span class="op">=</span>(<span class="st">'drive_total_epa'</span>, <span class="st">'median'</span>),</span>
+<span id="cb27-5"><a href="#cb27-5" aria-hidden="true" tabindex="-1"></a>    total_off_epa<span class="op">=</span>(<span class="st">'drive_total_epa'</span>, <span class="st">'sum'</span>),</span>
+<span id="cb27-6"><a href="#cb27-6" aria-hidden="true" tabindex="-1"></a>    avg_plays_per_dr<span class="op">=</span>(<span class="st">'play_count'</span>, <span class="st">'mean'</span>)</span>
+<span id="cb27-7"><a href="#cb27-7" aria-hidden="true" tabindex="-1"></a>).reset_index().sort_values(by<span class="op">=</span><span class="st">'mean_drive_epa'</span>, ascending<span class="op">=</span><span class="va">False</span>)</span>
+<span id="cb27-8"><a href="#cb27-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb27-9"><a href="#cb27-9" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">"Top 6 Offensive Drive Summaries:"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</details>
+<details open="" class="code-fold">
+<summary>Show Python Code</summary>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb28"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb28-1"><a href="#cb28-1" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(offense_drive_summary.head(<span class="dv">6</span>).<span class="bu">round</span>(<span class="dv">3</span>).to_markdown(index<span class="op">=</span><span class="va">False</span>))</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</details>
+<details open="" class="code-fold">
+<summary>Show Python Code</summary>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb29"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb29-1"><a href="#cb29-1" aria-hidden="true" tabindex="-1"></a>defense_drive_summary <span class="op">=</span> drive_level_data[drive_level_data[<span class="st">'defteam'</span>].notna()].groupby(<span class="st">'defteam'</span>).agg(</span>
+<span id="cb29-2"><a href="#cb29-2" aria-hidden="true" tabindex="-1"></a>    drives_def<span class="op">=</span>(<span class="st">'drive_total_epa'</span>, <span class="st">'count'</span>),</span>
+<span id="cb29-3"><a href="#cb29-3" aria-hidden="true" tabindex="-1"></a>    mean_epa_allowed<span class="op">=</span>(<span class="st">'drive_total_epa'</span>, <span class="st">'mean'</span>),</span>
+<span id="cb29-4"><a href="#cb29-4" aria-hidden="true" tabindex="-1"></a>    median_epa_allow<span class="op">=</span>(<span class="st">'drive_total_epa'</span>, <span class="st">'median'</span>),</span>
+<span id="cb29-5"><a href="#cb29-5" aria-hidden="true" tabindex="-1"></a>    total_def_epa<span class="op">=</span>(<span class="st">'drive_total_epa'</span>, <span class="st">'sum'</span>),</span>
+<span id="cb29-6"><a href="#cb29-6" aria-hidden="true" tabindex="-1"></a>    avg_plays_allowed<span class="op">=</span>(<span class="st">'play_count'</span>, <span class="st">'mean'</span>)</span>
+<span id="cb29-7"><a href="#cb29-7" aria-hidden="true" tabindex="-1"></a>).reset_index().sort_values(by<span class="op">=</span><span class="st">'mean_epa_allowed'</span>, ascending<span class="op">=</span><span class="va">True</span>)</span>
+<span id="cb29-8"><a href="#cb29-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb29-9"><a href="#cb29-9" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">"</span><span class="ch">\n</span><span class="st">Top 6 Defensive Drive Summaries:"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</details>
+<details open="" class="code-fold">
+<summary>Show Python Code</summary>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb30"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb30-1"><a href="#cb30-1" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(defense_drive_summary.head(<span class="dv">6</span>).<span class="bu">round</span>(<span class="dv">3</span>).to_markdown(index<span class="op">=</span><span class="va">False</span>))</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</details>
+</div>
+</section>
+<section id="task-3" class="level3" data-number="0.1.1">
+<h3 data-number="0.1.1" class="anchored" data-anchor-id="task-3"><span class="header-section-number">0.1.1</span> Task 3</h3>
+<p>Find another metric, not EPA, and calculate the summaries (mean, median, sum) for each drive in the raw_pbp_2025 dataset. Then do it for only pass plays. Which team was the best on your metric for all plays? for only pass plays?</p>
+</section>
+</section>
+<section id="college-football-data" class="level2" data-number="0.2">
+<h2 data-number="0.2" class="anchored" data-anchor-id="college-football-data"><span class="header-section-number">0.2</span> College Football Data</h2>
+<p>Below we do some practice with loading, summarizing and visualizing the college football data. Using direct parquet imports from public repositories fetches pre-processed play-by-play data directly without requiring API key authentication. We aggregate play-level yardage to quantify offensive and defensive Yards Per Play (YPP) across the 2025 season.</p>
+<div class="cell">
+<details open="" class="code-fold">
+<summary>Show Python Code</summary>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb31"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb31-1"><a href="#cb31-1" aria-hidden="true" tabindex="-1"></a><span class="co"># load the 2025 season</span></span>
+<span id="cb31-2"><a href="#cb31-2" aria-hidden="true" tabindex="-1"></a>plays_df_polars <span class="op">=</span> sdv.cfb.load_cfb_pbp(seasons<span class="op">=</span>[<span class="dv">2025</span>], return_as_pandas<span class="op">=</span><span class="va">False</span>)</span>
+<span id="cb31-3"><a href="#cb31-3" aria-hidden="true" tabindex="-1"></a>games_df_polars <span class="op">=</span> sdv.cfb.load_cfb_schedule(seasons<span class="op">=</span>[<span class="dv">2025</span>], return_as_pandas<span class="op">=</span><span class="va">False</span>)</span>
+<span id="cb31-4"><a href="#cb31-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb31-5"><a href="#cb31-5" aria-hidden="true" tabindex="-1"></a><span class="co"># convert the polar files to pandas dataframe</span></span>
+<span id="cb31-6"><a href="#cb31-6" aria-hidden="true" tabindex="-1"></a>pbp_2025_raw <span class="op">=</span> plays_df_polars.to_pandas(use_pyarrow_extension_array<span class="op">=</span><span class="va">False</span>)</span>
+<span id="cb31-7"><a href="#cb31-7" aria-hidden="true" tabindex="-1"></a>games_df<span class="op">=</span>games_df_polars.to_pandas(use_pyarrow_extension_array<span class="op">=</span><span class="va">False</span>)</span>
+<span id="cb31-8"><a href="#cb31-8" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">"</span><span class="ch">\n</span><span class="st">"</span>.join(games_df.columns))</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</details>
+<details open="" class="code-fold">
+<summary>Show Python Code</summary>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb32"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb32-1"><a href="#cb32-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Filter down game metadata to isolate the home/away division tags</span></span>
+<span id="cb32-2"><a href="#cb32-2" aria-hidden="true" tabindex="-1"></a>games_meta <span class="op">=</span> games_df[[<span class="st">'game_id'</span>, <span class="st">'home_division'</span>, <span class="st">'away_division'</span>,<span class="st">'home_conference'</span>,<span class="st">'away_conference'</span>]]</span>
+<span id="cb32-3"><a href="#cb32-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb32-4"><a href="#cb32-4" aria-hidden="true" tabindex="-1"></a><span class="co"># 4. Merge the division tags onto your play-by-play data</span></span>
+<span id="cb32-5"><a href="#cb32-5" aria-hidden="true" tabindex="-1"></a>final_pbp <span class="op">=</span> pd.merge(pbp_2025_raw, games_meta, on<span class="op">=</span><span class="st">'game_id'</span>, how<span class="op">=</span><span class="st">'left'</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</details>
+</div>
+<div class="cell">
+<details open="" class="code-fold">
+<summary>Show Python Code</summary>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb33"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb33-1"><a href="#cb33-1" aria-hidden="true" tabindex="-1"></a>col_list <span class="op">=</span> final_pbp.columns.tolist()</span>
+<span id="cb33-2"><a href="#cb33-2" aria-hidden="true" tabindex="-1"></a>pd.set_option(<span class="st">'display.max_seq_items'</span>, <span class="va">None</span>)</span>
+<span id="cb33-3"><a href="#cb33-3" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(col_list) </span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</details>
+<details open="" class="code-fold">
+<summary>Show Python Code</summary>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb34"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb34-1"><a href="#cb34-1" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">"</span><span class="ch">\n</span><span class="st">"</span>.join(final_pbp.columns))</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</details>
+</div>
+<div class="cell">
+<details open="" class="code-fold">
+<summary>Show Python Code</summary>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb35"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb35-1"><a href="#cb35-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Filter for FBS vs FBS games and valid rushing/passing attempts</span></span>
+<span id="cb35-2"><a href="#cb35-2" aria-hidden="true" tabindex="-1"></a>pbp_2025 <span class="op">=</span> final_pbp[</span>
+<span id="cb35-3"><a href="#cb35-3" aria-hidden="true" tabindex="-1"></a>    (final_pbp[<span class="st">'home_division'</span>] <span class="op">==</span> <span class="st">'fbs'</span>) <span class="op">&amp;</span> </span>
+<span id="cb35-4"><a href="#cb35-4" aria-hidden="true" tabindex="-1"></a>    (final_pbp[<span class="st">'away_division'</span>] <span class="op">==</span> <span class="st">'fbs'</span>) <span class="op">&amp;</span></span>
+<span id="cb35-5"><a href="#cb35-5" aria-hidden="true" tabindex="-1"></a>    ((final_pbp[<span class="st">'rush'</span>] <span class="op">==</span> <span class="dv">1</span>) <span class="op">|</span> (final_pbp[<span class="st">'pass'</span>] <span class="op">==</span> <span class="dv">1</span>)) <span class="op">&amp;</span></span>
+<span id="cb35-6"><a href="#cb35-6" aria-hidden="true" tabindex="-1"></a>    (final_pbp[<span class="st">'statYardage'</span>].notna())</span>
+<span id="cb35-7"><a href="#cb35-7" aria-hidden="true" tabindex="-1"></a>].copy()</span>
+<span id="cb35-8"><a href="#cb35-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb35-9"><a href="#cb35-9" aria-hidden="true" tabindex="-1"></a>pbp_2025 <span class="op">=</span> pbp_2025.rename(columns<span class="op">=</span>{<span class="st">'statYardage'</span>: <span class="st">'yards_gained'</span>})</span>
+<span id="cb35-10"><a href="#cb35-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb35-11"><a href="#cb35-11" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"Dataset successfully loaded. Dimensions: </span><span class="sc">{</span>pbp_2025<span class="sc">.</span>shape<span class="sc">}</span><span class="ss">"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</details>
+</div>
+<p>Note pbp for all college is a big file and includes teams from FBS, FCS, D2 and D3. We’re only interested in FBS v FBS games today. Below we get the yards per play gained for offenses.</p>
+<div class="cell">
+<details open="" class="code-fold">
+<summary>Show Python Code</summary>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb36"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb36-1"><a href="#cb36-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Compute offensive YPP by team</span></span>
+<span id="cb36-2"><a href="#cb36-2" aria-hidden="true" tabindex="-1"></a>off_ypp <span class="op">=</span> pbp_2025.groupby([<span class="st">'pos_team'</span>, ]).agg(</span>
+<span id="cb36-3"><a href="#cb36-3" aria-hidden="true" tabindex="-1"></a>    off_plays<span class="op">=</span>(<span class="st">'yards_gained'</span>, <span class="st">'count'</span>),</span>
+<span id="cb36-4"><a href="#cb36-4" aria-hidden="true" tabindex="-1"></a>    off_ypp<span class="op">=</span>(<span class="st">'yards_gained'</span>, <span class="st">'mean'</span>)</span>
+<span id="cb36-5"><a href="#cb36-5" aria-hidden="true" tabindex="-1"></a>).reset_index().rename(columns<span class="op">=</span>{<span class="st">'pos_team'</span>: <span class="st">'team'</span>}).sort_values(by<span class="op">=</span><span class="st">'off_ypp'</span>, ascending<span class="op">=</span><span class="va">False</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</details>
+</div>
+</section>
+<section id="lets-look-at-who-is-best-on-this-metric" class="level1" data-number="1">
+<h1 data-number="1"><span class="header-section-number">1</span> Let’s look at who is best on this metric</h1>
+<div class="cell">
+<details open="" class="code-fold">
+<summary>Show Python Code</summary>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb37"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb37-1"><a href="#cb37-1" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(off_ypp.head(<span class="dv">15</span>).<span class="bu">round</span>(<span class="dv">3</span>).to_markdown(index<span class="op">=</span><span class="va">False</span>))</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</details>
+</div>
+<p>Below we get the yards per play gained against defenses.</p>
+<div class="cell">
+<details open="" class="code-fold">
+<summary>Show Python Code</summary>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb38"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb38-1"><a href="#cb38-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Compute defensive YPP allowed by team</span></span>
+<span id="cb38-2"><a href="#cb38-2" aria-hidden="true" tabindex="-1"></a>def_ypp <span class="op">=</span> pbp_2025.groupby(<span class="st">'def_pos_team'</span>).agg(</span>
+<span id="cb38-3"><a href="#cb38-3" aria-hidden="true" tabindex="-1"></a>    def_plays<span class="op">=</span>(<span class="st">'yards_gained'</span>, <span class="st">'count'</span>),</span>
+<span id="cb38-4"><a href="#cb38-4" aria-hidden="true" tabindex="-1"></a>    def_ypp<span class="op">=</span>(<span class="st">'yards_gained'</span>, <span class="st">'mean'</span>)</span>
+<span id="cb38-5"><a href="#cb38-5" aria-hidden="true" tabindex="-1"></a>).reset_index().rename(columns<span class="op">=</span>{<span class="st">'def_pos_team'</span>: <span class="st">'team'</span>}).sort_values(by<span class="op">=</span><span class="st">'def_ypp'</span>, ascending<span class="op">=</span><span class="va">True</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</details>
+</div>
+<div class="cell">
+<details open="" class="code-fold">
+<summary>Show Python Code</summary>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb39"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb39-1"><a href="#cb39-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Let's look at who is best</span></span>
+<span id="cb39-2"><a href="#cb39-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb39-3"><a href="#cb39-3" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(def_ypp.head(<span class="dv">15</span>).<span class="bu">round</span>(<span class="dv">3</span>).to_markdown(index<span class="op">=</span><span class="va">False</span>))</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</details>
+</div>
+<p>Below we join and classify the teams into tiers.</p>
+<div class="cell">
+<details open="" class="code-fold">
+<summary>Show Python Code</summary>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb40"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb40-1"><a href="#cb40-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Join metrics and classify into performance tiers</span></span>
+<span id="cb40-2"><a href="#cb40-2" aria-hidden="true" tabindex="-1"></a>all_ypp <span class="op">=</span> pd.merge(off_ypp, def_ypp, on<span class="op">=</span><span class="st">'team'</span>)</span>
+<span id="cb40-3"><a href="#cb40-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb40-4"><a href="#cb40-4" aria-hidden="true" tabindex="-1"></a>mean_off <span class="op">=</span> all_ypp[<span class="st">'off_ypp'</span>].mean()</span>
+<span id="cb40-5"><a href="#cb40-5" aria-hidden="true" tabindex="-1"></a>mean_def <span class="op">=</span> all_ypp[<span class="st">'def_ypp'</span>].mean()</span>
+<span id="cb40-6"><a href="#cb40-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb40-7"><a href="#cb40-7" aria-hidden="true" tabindex="-1"></a>conditions <span class="op">=</span> [</span>
+<span id="cb40-8"><a href="#cb40-8" aria-hidden="true" tabindex="-1"></a>    (all_ypp[<span class="st">'off_ypp'</span>] <span class="op">&gt;</span> mean_off) <span class="op">&amp;</span> (all_ypp[<span class="st">'def_ypp'</span>] <span class="op">&lt;</span> mean_def),</span>
+<span id="cb40-9"><a href="#cb40-9" aria-hidden="true" tabindex="-1"></a>    (all_ypp[<span class="st">'off_ypp'</span>] <span class="op">&gt;</span> mean_off) <span class="op">&amp;</span> (all_ypp[<span class="st">'def_ypp'</span>] <span class="op">&gt;=</span> mean_def),</span>
+<span id="cb40-10"><a href="#cb40-10" aria-hidden="true" tabindex="-1"></a>    (all_ypp[<span class="st">'off_ypp'</span>] <span class="op">&lt;=</span> mean_off) <span class="op">&amp;</span> (all_ypp[<span class="st">'def_ypp'</span>] <span class="op">&lt;</span> mean_def)</span>
+<span id="cb40-11"><a href="#cb40-11" aria-hidden="true" tabindex="-1"></a>]</span>
+<span id="cb40-12"><a href="#cb40-12" aria-hidden="true" tabindex="-1"></a>choices <span class="op">=</span> [<span class="st">"Elite"</span>, <span class="st">"High Offense / Low Defense"</span>, <span class="st">"Low Offense / High Defense"</span>]</span>
+<span id="cb40-13"><a href="#cb40-13" aria-hidden="true" tabindex="-1"></a>all_ypp[<span class="st">'tier'</span>] <span class="op">=</span> np.select(conditions, choices, default<span class="op">=</span><span class="st">"Rebuilding"</span>)</span>
+<span id="cb40-14"><a href="#cb40-14" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb40-15"><a href="#cb40-15" aria-hidden="true" tabindex="-1"></a>all_ypp[<span class="st">'net_ypp'</span>] <span class="op">=</span> all_ypp[<span class="st">'off_ypp'</span>] <span class="op">-</span> all_ypp[<span class="st">'def_ypp'</span>]</span>
+<span id="cb40-16"><a href="#cb40-16" aria-hidden="true" tabindex="-1"></a>all_ypp <span class="op">=</span> all_ypp.sort_values(by<span class="op">=</span><span class="st">'net_ypp'</span>, ascending<span class="op">=</span><span class="va">False</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</details>
+</div>
+<p>Print out the data in a nice format.</p>
+<div class="cell">
+<details open="" class="code-fold">
+<summary>Show Python Code</summary>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb41"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb41-1"><a href="#cb41-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Render structured output table</span></span>
+<span id="cb41-2"><a href="#cb41-2" aria-hidden="true" tabindex="-1"></a>(</span>
+<span id="cb41-3"><a href="#cb41-3" aria-hidden="true" tabindex="-1"></a>    GT(all_ypp[[<span class="st">'team'</span>, <span class="st">'off_ypp'</span>, <span class="st">'def_ypp'</span>, <span class="st">'net_ypp'</span>, <span class="st">'tier'</span>]])</span>
+<span id="cb41-4"><a href="#cb41-4" aria-hidden="true" tabindex="-1"></a>    .tab_header(</span>
+<span id="cb41-5"><a href="#cb41-5" aria-hidden="true" tabindex="-1"></a>        title<span class="op">=</span>md(<span class="st">"**2025 FBS Yards Per Play Summary**"</span>),</span>
+<span id="cb41-6"><a href="#cb41-6" aria-hidden="true" tabindex="-1"></a>        subtitle<span class="op">=</span><span class="st">"Evaluated on all rushing and passing attempts"</span></span>
+<span id="cb41-7"><a href="#cb41-7" aria-hidden="true" tabindex="-1"></a>    )</span>
+<span id="cb41-8"><a href="#cb41-8" aria-hidden="true" tabindex="-1"></a>    .cols_label(</span>
+<span id="cb41-9"><a href="#cb41-9" aria-hidden="true" tabindex="-1"></a>        team<span class="op">=</span><span class="st">"Team"</span>,</span>
+<span id="cb41-10"><a href="#cb41-10" aria-hidden="true" tabindex="-1"></a>        off_ypp<span class="op">=</span><span class="st">"Offensive YPP"</span>,</span>
+<span id="cb41-11"><a href="#cb41-11" aria-hidden="true" tabindex="-1"></a>        def_ypp<span class="op">=</span><span class="st">"Defensive YPP"</span>,</span>
+<span id="cb41-12"><a href="#cb41-12" aria-hidden="true" tabindex="-1"></a>        net_ypp<span class="op">=</span><span class="st">"Net YPP Margin"</span>,</span>
+<span id="cb41-13"><a href="#cb41-13" aria-hidden="true" tabindex="-1"></a>        tier<span class="op">=</span><span class="st">"Performance Tier"</span></span>
+<span id="cb41-14"><a href="#cb41-14" aria-hidden="true" tabindex="-1"></a>    )</span>
+<span id="cb41-15"><a href="#cb41-15" aria-hidden="true" tabindex="-1"></a>    .fmt_number(columns<span class="op">=</span>[<span class="st">"off_ypp"</span>, <span class="st">"def_ypp"</span>, <span class="st">"net_ypp"</span>], decimals<span class="op">=</span><span class="dv">2</span>)</span>
+<span id="cb41-16"><a href="#cb41-16" aria-hidden="true" tabindex="-1"></a>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</details>
+</div>
+<p>Now a visualization with labels to make things readable[cite: 1].</p>
+<div class="cell">
+<details open="" class="code-fold">
+<summary>Show Python Code</summary>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb42"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb42-1"><a href="#cb42-1" aria-hidden="true" tabindex="-1"></a>plt.figure(figsize<span class="op">=</span>(<span class="dv">10</span>, <span class="dv">7</span>))</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</details>
+<details open="" class="code-fold">
+<summary>Show Python Code</summary>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb43"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb43-1"><a href="#cb43-1" aria-hidden="true" tabindex="-1"></a>sns.scatterplot(</span>
+<span id="cb43-2"><a href="#cb43-2" aria-hidden="true" tabindex="-1"></a>    data<span class="op">=</span>all_ypp, </span>
+<span id="cb43-3"><a href="#cb43-3" aria-hidden="true" tabindex="-1"></a>    x<span class="op">=</span><span class="st">'off_ypp'</span>, </span>
+<span id="cb43-4"><a href="#cb43-4" aria-hidden="true" tabindex="-1"></a>    y<span class="op">=</span><span class="st">'def_ypp'</span>, </span>
+<span id="cb43-5"><a href="#cb43-5" aria-hidden="true" tabindex="-1"></a>    hue<span class="op">=</span><span class="st">'tier'</span>, </span>
+<span id="cb43-6"><a href="#cb43-6" aria-hidden="true" tabindex="-1"></a>    palette<span class="op">=</span><span class="st">'Set1'</span>, </span>
+<span id="cb43-7"><a href="#cb43-7" aria-hidden="true" tabindex="-1"></a>    s<span class="op">=</span><span class="dv">70</span></span>
+<span id="cb43-8"><a href="#cb43-8" aria-hidden="true" tabindex="-1"></a>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</details>
+<details open="" class="code-fold">
+<summary>Show Python Code</summary>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb44"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb44-1"><a href="#cb44-1" aria-hidden="true" tabindex="-1"></a>plt.axvline(all_ypp[<span class="st">'off_ypp'</span>].mean(), color<span class="op">=</span><span class="st">'gray'</span>, linestyle<span class="op">=</span><span class="st">'--'</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</details>
+<details open="" class="code-fold">
+<summary>Show Python Code</summary>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb45"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb45-1"><a href="#cb45-1" aria-hidden="true" tabindex="-1"></a>plt.axhline(all_ypp[<span class="st">'def_ypp'</span>].mean(), color<span class="op">=</span><span class="st">'gray'</span>, linestyle<span class="op">=</span><span class="st">'--'</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</details>
+<details open="" class="code-fold">
+<summary>Show Python Code</summary>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb46"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb46-1"><a href="#cb46-1" aria-hidden="true" tabindex="-1"></a>texts <span class="op">=</span> []</span>
+<span id="cb46-2"><a href="#cb46-2" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> _, row <span class="kw">in</span> all_ypp.iterrows():</span>
+<span id="cb46-3"><a href="#cb46-3" aria-hidden="true" tabindex="-1"></a>    texts.append(plt.text(row[<span class="st">'off_ypp'</span>], row[<span class="st">'def_ypp'</span>], row[<span class="st">'team'</span>], fontsize<span class="op">=</span><span class="dv">9</span>))</span>
+<span id="cb46-4"><a href="#cb46-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb46-5"><a href="#cb46-5" aria-hidden="true" tabindex="-1"></a>adjust_text(texts, arrowprops<span class="op">=</span><span class="bu">dict</span>(arrowstyle<span class="op">=</span><span class="st">'-'</span>, color<span class="op">=</span><span class="st">'gray'</span>, lw<span class="op">=</span><span class="fl">0.3</span>))</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</details>
+<details open="" class="code-fold">
+<summary>Show Python Code</summary>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb47"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb47-1"><a href="#cb47-1" aria-hidden="true" tabindex="-1"></a>plt.gca().invert_yaxis()</span>
+<span id="cb47-2"><a href="#cb47-2" aria-hidden="true" tabindex="-1"></a>plt.title(<span class="st">"2025 Team Yards Per Play Matrix"</span>, fontsize<span class="op">=</span><span class="dv">14</span>, fontweight<span class="op">=</span><span class="st">'bold'</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</details>
+<details open="" class="code-fold">
+<summary>Show Python Code</summary>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb48"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb48-1"><a href="#cb48-1" aria-hidden="true" tabindex="-1"></a>plt.suptitle(<span class="st">"Top-Right quadrant indicates above-average offensive and defensive performance"</span>, fontsize<span class="op">=</span><span class="dv">7</span>, color<span class="op">=</span><span class="st">'gray'</span>, y<span class="op">=</span><span class="fl">0.92</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</details>
+<details open="" class="code-fold">
+<summary>Show Python Code</summary>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb49"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb49-1"><a href="#cb49-1" aria-hidden="true" tabindex="-1"></a>plt.xlabel(<span class="st">"Offensive YPP (Higher is Better)"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</details>
+<details open="" class="code-fold">
+<summary>Show Python Code</summary>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb50"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb50-1"><a href="#cb50-1" aria-hidden="true" tabindex="-1"></a>plt.ylabel(<span class="st">"Defensive YPP Allowed (Lower is Better)"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</details>
+<details open="" class="code-fold">
+<summary>Show Python Code</summary>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb51"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb51-1"><a href="#cb51-1" aria-hidden="true" tabindex="-1"></a>plt.legend(title<span class="op">=</span><span class="st">"Tier"</span>, loc<span class="op">=</span><span class="st">'lower center'</span>, bbox_to_anchor<span class="op">=</span>(<span class="fl">0.5</span>, <span class="op">-</span><span class="fl">0.18</span>), ncol<span class="op">=</span><span class="dv">4</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</details>
+<details open="" class="code-fold">
+<summary>Show Python Code</summary>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb52"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb52-1"><a href="#cb52-1" aria-hidden="true" tabindex="-1"></a>plt.tight_layout()</span>
+<span id="cb52-2"><a href="#cb52-2" aria-hidden="true" tabindex="-1"></a>plt.show()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</details>
+</div>
+<div class="cell">
+<details open="" class="code-fold">
+<summary>Show Python Code</summary>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb53"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb53-1"><a href="#cb53-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> matplotlib.pyplot <span class="im">as</span> plt</span>
+<span id="cb53-2"><a href="#cb53-2" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> seaborn <span class="im">as</span> sns</span>
+<span id="cb53-3"><a href="#cb53-3" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> adjustText <span class="im">import</span> adjust_text</span>
+<span id="cb53-4"><a href="#cb53-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb53-5"><a href="#cb53-5" aria-hidden="true" tabindex="-1"></a><span class="co"># Set high-DPI theme and clean grid style</span></span>
+<span id="cb53-6"><a href="#cb53-6" aria-hidden="true" tabindex="-1"></a>sns.set_theme(style<span class="op">=</span><span class="st">"whitegrid"</span>)</span>
+<span id="cb53-7"><a href="#cb53-7" aria-hidden="true" tabindex="-1"></a>fig, ax <span class="op">=</span> plt.subplots(figsize<span class="op">=</span>(<span class="dv">12</span>, <span class="dv">8</span>), dpi<span class="op">=</span><span class="dv">150</span>)</span>
+<span id="cb53-8"><a href="#cb53-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb53-9"><a href="#cb53-9" aria-hidden="true" tabindex="-1"></a><span class="co"># 1. Plot points with distinct borders and subtle transparency</span></span>
+<span id="cb53-10"><a href="#cb53-10" aria-hidden="true" tabindex="-1"></a>sns.scatterplot(</span>
+<span id="cb53-11"><a href="#cb53-11" aria-hidden="true" tabindex="-1"></a>    data<span class="op">=</span>all_ypp, </span>
+<span id="cb53-12"><a href="#cb53-12" aria-hidden="true" tabindex="-1"></a>    x<span class="op">=</span><span class="st">'off_ypp'</span>, </span>
+<span id="cb53-13"><a href="#cb53-13" aria-hidden="true" tabindex="-1"></a>    y<span class="op">=</span><span class="st">'def_ypp'</span>, </span>
+<span id="cb53-14"><a href="#cb53-14" aria-hidden="true" tabindex="-1"></a>    hue<span class="op">=</span><span class="st">'tier'</span>, </span>
+<span id="cb53-15"><a href="#cb53-15" aria-hidden="true" tabindex="-1"></a>    palette<span class="op">=</span><span class="st">'Set1'</span>, </span>
+<span id="cb53-16"><a href="#cb53-16" aria-hidden="true" tabindex="-1"></a>    s<span class="op">=</span><span class="dv">90</span>,</span>
+<span id="cb53-17"><a href="#cb53-17" aria-hidden="true" tabindex="-1"></a>    edgecolor<span class="op">=</span><span class="st">'black'</span>,</span>
+<span id="cb53-18"><a href="#cb53-18" aria-hidden="true" tabindex="-1"></a>    linewidth<span class="op">=</span><span class="fl">0.5</span>,</span>
+<span id="cb53-19"><a href="#cb53-19" aria-hidden="true" tabindex="-1"></a>    alpha<span class="op">=</span><span class="fl">0.85</span>,</span>
+<span id="cb53-20"><a href="#cb53-20" aria-hidden="true" tabindex="-1"></a>    ax<span class="op">=</span>ax</span>
+<span id="cb53-21"><a href="#cb53-21" aria-hidden="true" tabindex="-1"></a>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</details>
+<details open="" class="code-fold">
+<summary>Show Python Code</summary>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb54"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb54-1"><a href="#cb54-1" aria-hidden="true" tabindex="-1"></a><span class="co"># 2. Add quadrant reference lines</span></span>
+<span id="cb54-2"><a href="#cb54-2" aria-hidden="true" tabindex="-1"></a>mean_off <span class="op">=</span> all_ypp[<span class="st">'off_ypp'</span>].mean()</span>
+<span id="cb54-3"><a href="#cb54-3" aria-hidden="true" tabindex="-1"></a>mean_def <span class="op">=</span> all_ypp[<span class="st">'def_ypp'</span>].mean()</span>
+<span id="cb54-4"><a href="#cb54-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb54-5"><a href="#cb54-5" aria-hidden="true" tabindex="-1"></a>ax.axvline(mean_off, color<span class="op">=</span><span class="st">'gray'</span>, linestyle<span class="op">=</span><span class="st">'--'</span>, linewidth<span class="op">=</span><span class="dv">1</span>, alpha<span class="op">=</span><span class="fl">0.7</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</details>
+<details open="" class="code-fold">
+<summary>Show Python Code</summary>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb55"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb55-1"><a href="#cb55-1" aria-hidden="true" tabindex="-1"></a>ax.axhline(mean_def, color<span class="op">=</span><span class="st">'gray'</span>, linestyle<span class="op">=</span><span class="st">'--'</span>, linewidth<span class="op">=</span><span class="dv">1</span>, alpha<span class="op">=</span><span class="fl">0.7</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</details>
+<details open="" class="code-fold">
+<summary>Show Python Code</summary>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb56"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb56-1"><a href="#cb56-1" aria-hidden="true" tabindex="-1"></a><span class="co"># 3. Add team text labels with translucent background boxes</span></span>
+<span id="cb56-2"><a href="#cb56-2" aria-hidden="true" tabindex="-1"></a>texts <span class="op">=</span> []</span>
+<span id="cb56-3"><a href="#cb56-3" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> _, row <span class="kw">in</span> all_ypp.iterrows():</span>
+<span id="cb56-4"><a href="#cb56-4" aria-hidden="true" tabindex="-1"></a>    t <span class="op">=</span> ax.text(</span>
+<span id="cb56-5"><a href="#cb56-5" aria-hidden="true" tabindex="-1"></a>        row[<span class="st">'off_ypp'</span>], </span>
+<span id="cb56-6"><a href="#cb56-6" aria-hidden="true" tabindex="-1"></a>        row[<span class="st">'def_ypp'</span>], </span>
+<span id="cb56-7"><a href="#cb56-7" aria-hidden="true" tabindex="-1"></a>        row[<span class="st">'team'</span>], </span>
+<span id="cb56-8"><a href="#cb56-8" aria-hidden="true" tabindex="-1"></a>        fontsize<span class="op">=</span><span class="dv">8</span>,</span>
+<span id="cb56-9"><a href="#cb56-9" aria-hidden="true" tabindex="-1"></a>        fontweight<span class="op">=</span><span class="st">'medium'</span>,</span>
+<span id="cb56-10"><a href="#cb56-10" aria-hidden="true" tabindex="-1"></a>        bbox<span class="op">=</span><span class="bu">dict</span>(boxstyle<span class="op">=</span><span class="st">"round,pad=0.15"</span>, fc<span class="op">=</span><span class="st">"white"</span>, ec<span class="op">=</span><span class="st">"none"</span>, alpha<span class="op">=</span><span class="fl">0.6</span>)</span>
+<span id="cb56-11"><a href="#cb56-11" aria-hidden="true" tabindex="-1"></a>    )</span>
+<span id="cb56-12"><a href="#cb56-12" aria-hidden="true" tabindex="-1"></a>    texts.append(t)</span>
+<span id="cb56-13"><a href="#cb56-13" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb56-14"><a href="#cb56-14" aria-hidden="true" tabindex="-1"></a><span class="co"># Optimize label placement to prevent overlapping lines</span></span>
+<span id="cb56-15"><a href="#cb56-15" aria-hidden="true" tabindex="-1"></a>adjust_text(</span>
+<span id="cb56-16"><a href="#cb56-16" aria-hidden="true" tabindex="-1"></a>    texts, </span>
+<span id="cb56-17"><a href="#cb56-17" aria-hidden="true" tabindex="-1"></a>    arrowprops<span class="op">=</span><span class="bu">dict</span>(arrowstyle<span class="op">=</span><span class="st">'-'</span>, color<span class="op">=</span><span class="st">'gray'</span>, lw<span class="op">=</span><span class="fl">0.4</span>, alpha<span class="op">=</span><span class="fl">0.6</span>),</span>
+<span id="cb56-18"><a href="#cb56-18" aria-hidden="true" tabindex="-1"></a>    expand<span class="op">=</span>(<span class="fl">1.2</span>, <span class="fl">1.4</span>),</span>
+<span id="cb56-19"><a href="#cb56-19" aria-hidden="true" tabindex="-1"></a>    force_text<span class="op">=</span>(<span class="fl">0.2</span>, <span class="fl">0.4</span>)</span>
+<span id="cb56-20"><a href="#cb56-20" aria-hidden="true" tabindex="-1"></a>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</details>
+<details open="" class="code-fold">
+<summary>Show Python Code</summary>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb57"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb57-1"><a href="#cb57-1" aria-hidden="true" tabindex="-1"></a><span class="co"># 4. Invert Y-axis (Lower defensive YPP allowed = better defense)</span></span>
+<span id="cb57-2"><a href="#cb57-2" aria-hidden="true" tabindex="-1"></a>ax.invert_yaxis()</span>
+<span id="cb57-3"><a href="#cb57-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb57-4"><a href="#cb57-4" aria-hidden="true" tabindex="-1"></a><span class="co"># 5. Add background quadrant annotations</span></span>
+<span id="cb57-5"><a href="#cb57-5" aria-hidden="true" tabindex="-1"></a>xlim <span class="op">=</span> ax.get_xlim()</span>
+<span id="cb57-6"><a href="#cb57-6" aria-hidden="true" tabindex="-1"></a>ylim <span class="op">=</span> ax.get_ylim()  <span class="co"># Note: ylim is inverted</span></span>
+<span id="cb57-7"><a href="#cb57-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb57-8"><a href="#cb57-8" aria-hidden="true" tabindex="-1"></a>ax.text(xlim[<span class="dv">1</span>], ylim[<span class="dv">1</span>], <span class="st">"GREAT OFFENSE</span><span class="ch">\n</span><span class="st">GREAT DEFENSE  "</span>, </span>
+<span id="cb57-9"><a href="#cb57-9" aria-hidden="true" tabindex="-1"></a>        ha<span class="op">=</span><span class="st">'right'</span>, va<span class="op">=</span><span class="st">'top'</span>, fontsize<span class="op">=</span><span class="dv">9</span>, fontweight<span class="op">=</span><span class="st">'bold'</span>, color<span class="op">=</span><span class="st">'green'</span>, alpha<span class="op">=</span><span class="fl">0.35</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</details>
+<details open="" class="code-fold">
+<summary>Show Python Code</summary>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb58"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb58-1"><a href="#cb58-1" aria-hidden="true" tabindex="-1"></a>ax.text(xlim[<span class="dv">0</span>], ylim[<span class="dv">0</span>], <span class="st">"  POOR OFFENSE</span><span class="ch">\n</span><span class="st">  POOR DEFENSE"</span>, </span>
+<span id="cb58-2"><a href="#cb58-2" aria-hidden="true" tabindex="-1"></a>        ha<span class="op">=</span><span class="st">'left'</span>, va<span class="op">=</span><span class="st">'bottom'</span>, fontsize<span class="op">=</span><span class="dv">9</span>, fontweight<span class="op">=</span><span class="st">'bold'</span>, color<span class="op">=</span><span class="st">'red'</span>, alpha<span class="op">=</span><span class="fl">0.35</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</details>
+<details open="" class="code-fold">
+<summary>Show Python Code</summary>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb59"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb59-1"><a href="#cb59-1" aria-hidden="true" tabindex="-1"></a><span class="co"># 6. Titles &amp; Labels</span></span>
+<span id="cb59-2"><a href="#cb59-2" aria-hidden="true" tabindex="-1"></a>ax.set_title(<span class="st">"2025 Team Yards Per Play Matrix"</span>, fontsize<span class="op">=</span><span class="dv">15</span>, fontweight<span class="op">=</span><span class="st">'bold'</span>, pad<span class="op">=</span><span class="dv">12</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</details>
+<details open="" class="code-fold">
+<summary>Show Python Code</summary>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb60"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb60-1"><a href="#cb60-1" aria-hidden="true" tabindex="-1"></a>ax.set_xlabel(<span class="st">"Offensive YPP (Higher is Better)"</span>, fontsize<span class="op">=</span><span class="dv">11</span>, labelpad<span class="op">=</span><span class="dv">8</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</details>
+<details open="" class="code-fold">
+<summary>Show Python Code</summary>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb61"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb61-1"><a href="#cb61-1" aria-hidden="true" tabindex="-1"></a>ax.set_ylabel(<span class="st">"Defensive YPP Allowed (Lower is Better)"</span>, fontsize<span class="op">=</span><span class="dv">11</span>, labelpad<span class="op">=</span><span class="dv">8</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</details>
+<details open="" class="code-fold">
+<summary>Show Python Code</summary>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb62"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb62-1"><a href="#cb62-1" aria-hidden="true" tabindex="-1"></a><span class="co"># 7. Clean Legend</span></span>
+<span id="cb62-2"><a href="#cb62-2" aria-hidden="true" tabindex="-1"></a>ax.legend(</span>
+<span id="cb62-3"><a href="#cb62-3" aria-hidden="true" tabindex="-1"></a>    title<span class="op">=</span><span class="st">"Performance Tier"</span>, </span>
+<span id="cb62-4"><a href="#cb62-4" aria-hidden="true" tabindex="-1"></a>    loc<span class="op">=</span><span class="st">'upper center'</span>, </span>
+<span id="cb62-5"><a href="#cb62-5" aria-hidden="true" tabindex="-1"></a>    bbox_to_anchor<span class="op">=</span>(<span class="fl">0.5</span>, <span class="op">-</span><span class="fl">0.1</span>), </span>
+<span id="cb62-6"><a href="#cb62-6" aria-hidden="true" tabindex="-1"></a>    ncol<span class="op">=</span><span class="dv">4</span>, </span>
+<span id="cb62-7"><a href="#cb62-7" aria-hidden="true" tabindex="-1"></a>    frameon<span class="op">=</span><span class="va">True</span>, </span>
+<span id="cb62-8"><a href="#cb62-8" aria-hidden="true" tabindex="-1"></a>    facecolor<span class="op">=</span><span class="st">'white'</span>, </span>
+<span id="cb62-9"><a href="#cb62-9" aria-hidden="true" tabindex="-1"></a>    edgecolor<span class="op">=</span><span class="st">'none'</span></span>
+<span id="cb62-10"><a href="#cb62-10" aria-hidden="true" tabindex="-1"></a>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</details>
+<details open="" class="code-fold">
+<summary>Show Python Code</summary>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb63"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb63-1"><a href="#cb63-1" aria-hidden="true" tabindex="-1"></a>plt.tight_layout()</span>
+<span id="cb63-2"><a href="#cb63-2" aria-hidden="true" tabindex="-1"></a>plt.show()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</details>
+</div>
+<p>Task 4</p>
+<p>Repeat the analysis above for another metric. This time only include data from games where the score differential between the two teams was less than 21[cite: 1].</p>
+<p>Using your API keyIn the code below set your API key in your environment[cite: 1]:</p>
+<div class="cell">
+<details open="" class="code-fold">
+<summary>Show Python Code</summary>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb64"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb64-1"><a href="#cb64-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Verify API key availability</span></span>
+<span id="cb64-2"><a href="#cb64-2" aria-hidden="true" tabindex="-1"></a>api_key <span class="op">=</span> os.getenv(<span class="st">"CFBD_API_KEY"</span>, <span class="st">"MullWLpxkoKVq3XEFcHdC+RiYq1VtVUbuTdPz9v954k7/YmfI0m05GVO2jn+k7aj"</span>)</span>
+<span id="cb64-3"><a href="#cb64-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb64-4"><a href="#cb64-4" aria-hidden="true" tabindex="-1"></a><span class="cf">if</span> api_key <span class="op">==</span> <span class="st">""</span>:</span>
+<span id="cb64-5"><a href="#cb64-5" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(<span class="st">"Warning: CFBD_API_KEY environment variable not detected."</span>)</span>
+<span id="cb64-6"><a href="#cb64-6" aria-hidden="true" tabindex="-1"></a><span class="cf">else</span>:</span>
+<span id="cb64-7"><a href="#cb64-7" aria-hidden="true" tabindex="-1"></a>    headers <span class="op">=</span> {<span class="st">"Authorization"</span>: <span class="ss">f"Bearer </span><span class="sc">{</span>api_key<span class="sc">}</span><span class="ss">"</span>}</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</details>
+</div>
+<div class="cell">
+<details open="" class="code-fold">
+<summary>Show Python Code</summary>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb65"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb65-1"><a href="#cb65-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Load live API endpoints: 2025 Team Talent Ratings &amp; Game Results</span></span>
+<span id="cb65-2"><a href="#cb65-2" aria-hidden="true" tabindex="-1"></a>talent_resp <span class="op">=</span> requests.get(<span class="st">"https://api.collegefootballdata.com/talent"</span>, headers<span class="op">=</span>headers, params<span class="op">=</span>{<span class="st">"year"</span>: <span class="dv">2025</span>})</span>
+<span id="cb65-3"><a href="#cb65-3" aria-hidden="true" tabindex="-1"></a>games_resp <span class="op">=</span> requests.get(<span class="st">"https://api.collegefootballdata.com/games"</span>, headers<span class="op">=</span>headers, params<span class="op">=</span>{<span class="st">"year"</span>: <span class="dv">2025</span>, <span class="st">"seasonType"</span>: <span class="st">"regular"</span>})</span>
+<span id="cb65-4"><a href="#cb65-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb65-5"><a href="#cb65-5" aria-hidden="true" tabindex="-1"></a>talent_raw <span class="op">=</span> pd.DataFrame(talent_resp.json()).rename(columns<span class="op">=</span>{<span class="st">"school"</span>: <span class="st">"team"</span>})</span>
+<span id="cb65-6"><a href="#cb65-6" aria-hidden="true" tabindex="-1"></a>games_raw <span class="op">=</span> pd.DataFrame(games_resp.json())</span>
+<span id="cb65-7"><a href="#cb65-7" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">"</span><span class="ch">\n</span><span class="st">"</span>.join(games_raw.columns))</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</details>
+</div>
+<p>Get wins for each team in 2025</p>
+<div class="cell">
+<details open="" class="code-fold">
+<summary>Show Python Code</summary>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb66"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb66-1"><a href="#cb66-1" aria-hidden="true" tabindex="-1"></a><span class="cf">if</span> <span class="st">'games_raw'</span> <span class="kw">in</span> <span class="bu">locals</span>():</span>
+<span id="cb66-2"><a href="#cb66-2" aria-hidden="true" tabindex="-1"></a>    <span class="co"># Calculate regular season wins per team</span></span>
+<span id="cb66-3"><a href="#cb66-3" aria-hidden="true" tabindex="-1"></a>    home_wins <span class="op">=</span> games_raw[games_raw[<span class="st">'homePoints'</span>] <span class="op">&gt;</span> games_raw[<span class="st">'awayPoints'</span>]].groupby(<span class="st">'homeTeam'</span>).size().reset_index(name<span class="op">=</span><span class="st">'wins'</span>).rename(columns<span class="op">=</span>{<span class="st">'homeTeam'</span>: <span class="st">'team'</span>})</span>
+<span id="cb66-4"><a href="#cb66-4" aria-hidden="true" tabindex="-1"></a>    away_wins <span class="op">=</span> games_raw[games_raw[<span class="st">'awayPoints'</span>] <span class="op">&gt;</span> games_raw[<span class="st">'homePoints'</span>]].groupby(<span class="st">'awayTeam'</span>).size().reset_index(name<span class="op">=</span><span class="st">'wins'</span>).rename(columns<span class="op">=</span>{<span class="st">'awayTeam'</span>: <span class="st">'team'</span>})</span>
+<span id="cb66-5"><a href="#cb66-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb66-6"><a href="#cb66-6" aria-hidden="true" tabindex="-1"></a>    total_wins <span class="op">=</span> pd.concat([home_wins, away_wins]).groupby(<span class="st">'team'</span>)[<span class="st">'wins'</span>].<span class="bu">sum</span>().reset_index()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</details>
+</div>
+<div class="cell">
+<details open="" class="code-fold">
+<summary>Show Python Code</summary>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb67"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb67-1"><a href="#cb67-1" aria-hidden="true" tabindex="-1"></a><span class="cf">if</span> <span class="st">'talent_raw'</span> <span class="kw">in</span> <span class="bu">locals</span>() <span class="kw">and</span> <span class="st">'total_wins'</span> <span class="kw">in</span> <span class="bu">locals</span>():</span>
+<span id="cb67-2"><a href="#cb67-2" aria-hidden="true" tabindex="-1"></a>    <span class="co"># Clean talent scores, join wins, and extract regression residuals</span></span>
+<span id="cb67-3"><a href="#cb67-3" aria-hidden="true" tabindex="-1"></a>    df_analytics <span class="op">=</span> pd.merge(talent_raw[[<span class="st">'team'</span>, <span class="st">'talent'</span>]], total_wins, on<span class="op">=</span><span class="st">'team'</span>).dropna()</span>
+<span id="cb67-4"><a href="#cb67-4" aria-hidden="true" tabindex="-1"></a>    df_analytics[<span class="st">'talent_score'</span>] <span class="op">=</span> df_analytics[<span class="st">'talent'</span>].astype(<span class="bu">float</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</details>
+</div>
+<div class="cell">
+<details open="" class="code-fold">
+<summary>Show Python Code</summary>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb68"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb68-1"><a href="#cb68-1" aria-hidden="true" tabindex="-1"></a><span class="cf">if</span> <span class="st">'df_analytics'</span> <span class="kw">in</span> <span class="bu">locals</span>():</span>
+<span id="cb68-2"><a href="#cb68-2" aria-hidden="true" tabindex="-1"></a>    <span class="co"># Fit OLS model to derive expected wins and residual performance</span></span>
+<span id="cb68-3"><a href="#cb68-3" aria-hidden="true" tabindex="-1"></a>    model <span class="op">=</span> smf.ols(<span class="st">'wins ~ talent_score'</span>, data<span class="op">=</span>df_analytics).fit()</span>
+<span id="cb68-4"><a href="#cb68-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb68-5"><a href="#cb68-5" aria-hidden="true" tabindex="-1"></a>    df_analytics[<span class="st">'expected_wins'</span>] <span class="op">=</span> model.predict(df_analytics)</span>
+<span id="cb68-6"><a href="#cb68-6" aria-hidden="true" tabindex="-1"></a>    df_analytics[<span class="st">'win_residual'</span>] <span class="op">=</span> df_analytics[<span class="st">'wins'</span>] <span class="op">-</span> df_analytics[<span class="st">'expected_wins'</span>]</span>
+<span id="cb68-7"><a href="#cb68-7" aria-hidden="true" tabindex="-1"></a>    df_analytics[<span class="st">'efficiency'</span>] <span class="op">=</span> np.where(df_analytics[<span class="st">'win_residual'</span>] <span class="op">&gt;=</span> <span class="dv">0</span>, <span class="st">"Overperforming"</span>, <span class="st">"Underperforming"</span>)</span>
+<span id="cb68-8"><a href="#cb68-8" aria-hidden="true" tabindex="-1"></a>    df_analytics <span class="op">=</span> df_analytics.sort_values(by<span class="op">=</span><span class="st">'win_residual'</span>, ascending<span class="op">=</span><span class="va">False</span>)</span>
+<span id="cb68-9"><a href="#cb68-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb68-10"><a href="#cb68-10" aria-hidden="true" tabindex="-1"></a>    <span class="co"># Tabulate top 5 overperforming teams relative to talent</span></span>
+<span id="cb68-11"><a href="#cb68-11" aria-hidden="true" tabindex="-1"></a>    (</span>
+<span id="cb68-12"><a href="#cb68-12" aria-hidden="true" tabindex="-1"></a>        GT(df_analytics[[<span class="st">'team'</span>, <span class="st">'talent_score'</span>, <span class="st">'wins'</span>, <span class="st">'expected_wins'</span>, <span class="st">'win_residual'</span>, <span class="st">'efficiency'</span>]].head(<span class="dv">5</span>))</span>
+<span id="cb68-13"><a href="#cb68-13" aria-hidden="true" tabindex="-1"></a>        .tab_header(</span>
+<span id="cb68-14"><a href="#cb68-14" aria-hidden="true" tabindex="-1"></a>            title<span class="op">=</span>md(<span class="st">"**Top 5 Talent Overperformers (2025)**"</span>),</span>
+<span id="cb68-15"><a href="#cb68-15" aria-hidden="true" tabindex="-1"></a>            subtitle<span class="op">=</span><span class="st">"Teams exceeding expected win totals based on 247Sports Composite Talent"</span></span>
+<span id="cb68-16"><a href="#cb68-16" aria-hidden="true" tabindex="-1"></a>        )</span>
+<span id="cb68-17"><a href="#cb68-17" aria-hidden="true" tabindex="-1"></a>        .cols_label(</span>
+<span id="cb68-18"><a href="#cb68-18" aria-hidden="true" tabindex="-1"></a>            team<span class="op">=</span><span class="st">"Team"</span>,</span>
+<span id="cb68-19"><a href="#cb68-19" aria-hidden="true" tabindex="-1"></a>            talent_score<span class="op">=</span><span class="st">"Talent Score"</span>,</span>
+<span id="cb68-20"><a href="#cb68-20" aria-hidden="true" tabindex="-1"></a>            wins<span class="op">=</span><span class="st">"Actual Wins"</span>,</span>
+<span id="cb68-21"><a href="#cb68-21" aria-hidden="true" tabindex="-1"></a>            expected_wins<span class="op">=</span><span class="st">"Expected Wins"</span>,</span>
+<span id="cb68-22"><a href="#cb68-22" aria-hidden="true" tabindex="-1"></a>            win_residual<span class="op">=</span><span class="st">"Win Surplus"</span>,</span>
+<span id="cb68-23"><a href="#cb68-23" aria-hidden="true" tabindex="-1"></a>            efficiency<span class="op">=</span><span class="st">"Status"</span></span>
+<span id="cb68-24"><a href="#cb68-24" aria-hidden="true" tabindex="-1"></a>        )</span>
+<span id="cb68-25"><a href="#cb68-25" aria-hidden="true" tabindex="-1"></a>        .fmt_number(columns<span class="op">=</span>[<span class="st">"talent_score"</span>, <span class="st">"expected_wins"</span>, <span class="st">"win_residual"</span>], decimals<span class="op">=</span><span class="dv">2</span>)</span>
+<span id="cb68-26"><a href="#cb68-26" aria-hidden="true" tabindex="-1"></a>    )</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</details>
+</div>
+<p>Make a visualization of talent vs Wins with the regression line on the plot[cite: 1]</p>
+<div class="cell">
+<details open="" class="code-fold">
+<summary>Show Python Code</summary>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb69"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb69-1"><a href="#cb69-1" aria-hidden="true" tabindex="-1"></a><span class="cf">if</span> <span class="st">'df_analytics'</span> <span class="kw">in</span> <span class="bu">locals</span>():</span>
+<span id="cb69-2"><a href="#cb69-2" aria-hidden="true" tabindex="-1"></a>    plt.figure(figsize<span class="op">=</span>(<span class="dv">10</span>, <span class="dv">6</span>))</span>
+<span id="cb69-3"><a href="#cb69-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb69-4"><a href="#cb69-4" aria-hidden="true" tabindex="-1"></a>    <span class="co"># Regression trend line</span></span>
+<span id="cb69-5"><a href="#cb69-5" aria-hidden="true" tabindex="-1"></a>    sns.regplot(</span>
+<span id="cb69-6"><a href="#cb69-6" aria-hidden="true" tabindex="-1"></a>        data<span class="op">=</span>df_analytics, </span>
+<span id="cb69-7"><a href="#cb69-7" aria-hidden="true" tabindex="-1"></a>        x<span class="op">=</span><span class="st">'talent_score'</span>, </span>
+<span id="cb69-8"><a href="#cb69-8" aria-hidden="true" tabindex="-1"></a>        y<span class="op">=</span><span class="st">'wins'</span>, </span>
+<span id="cb69-9"><a href="#cb69-9" aria-hidden="true" tabindex="-1"></a>        color<span class="op">=</span><span class="st">'black'</span>, </span>
+<span id="cb69-10"><a href="#cb69-10" aria-hidden="true" tabindex="-1"></a>        line_kws<span class="op">=</span>{<span class="st">'linestyle'</span>: <span class="st">'--'</span>, <span class="st">'linewidth'</span>: <span class="fl">1.5</span>},</span>
+<span id="cb69-11"><a href="#cb69-11" aria-hidden="true" tabindex="-1"></a>        scatter<span class="op">=</span><span class="va">False</span></span>
+<span id="cb69-12"><a href="#cb69-12" aria-hidden="true" tabindex="-1"></a>    )</span>
+<span id="cb69-13"><a href="#cb69-13" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb69-14"><a href="#cb69-14" aria-hidden="true" tabindex="-1"></a>    <span class="co"># Scatter plot colored by win residual</span></span>
+<span id="cb69-15"><a href="#cb69-15" aria-hidden="true" tabindex="-1"></a>    scatter <span class="op">=</span> plt.scatter(</span>
+<span id="cb69-16"><a href="#cb69-16" aria-hidden="true" tabindex="-1"></a>        df_analytics[<span class="st">'talent_score'</span>], </span>
+<span id="cb69-17"><a href="#cb69-17" aria-hidden="true" tabindex="-1"></a>        df_analytics[<span class="st">'wins'</span>], </span>
+<span id="cb69-18"><a href="#cb69-18" aria-hidden="true" tabindex="-1"></a>        c<span class="op">=</span>df_analytics[<span class="st">'win_residual'</span>], </span>
+<span id="cb69-19"><a href="#cb69-19" aria-hidden="true" tabindex="-1"></a>        cmap<span class="op">=</span><span class="st">'RdYlGn'</span>, </span>
+<span id="cb69-20"><a href="#cb69-20" aria-hidden="true" tabindex="-1"></a>        s<span class="op">=</span><span class="dv">60</span>, </span>
+<span id="cb69-21"><a href="#cb69-21" aria-hidden="true" tabindex="-1"></a>        alpha<span class="op">=</span><span class="fl">0.85</span></span>
+<span id="cb69-22"><a href="#cb69-22" aria-hidden="true" tabindex="-1"></a>    )</span>
+<span id="cb69-23"><a href="#cb69-23" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb69-24"><a href="#cb69-24" aria-hidden="true" tabindex="-1"></a>    cbar <span class="op">=</span> plt.colorbar(scatter)</span>
+<span id="cb69-25"><a href="#cb69-25" aria-hidden="true" tabindex="-1"></a>    cbar.set_label(<span class="st">"Win Surplus"</span>)</span>
+<span id="cb69-26"><a href="#cb69-26" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb69-27"><a href="#cb69-27" aria-hidden="true" tabindex="-1"></a>    texts <span class="op">=</span> []</span>
+<span id="cb69-28"><a href="#cb69-28" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> _, row <span class="kw">in</span> df_analytics.iterrows():</span>
+<span id="cb69-29"><a href="#cb69-29" aria-hidden="true" tabindex="-1"></a>        texts.append(plt.text(row[<span class="st">'talent_score'</span>], row[<span class="st">'wins'</span>], row[<span class="st">'team'</span>], fontsize<span class="op">=</span><span class="dv">9</span>))</span>
+<span id="cb69-30"><a href="#cb69-30" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb69-31"><a href="#cb69-31" aria-hidden="true" tabindex="-1"></a>    adjust_text(texts, arrowprops<span class="op">=</span><span class="bu">dict</span>(arrowstyle<span class="op">=</span><span class="st">'-'</span>, color<span class="op">=</span><span class="st">'gray'</span>, lw<span class="op">=</span><span class="fl">0.5</span>))</span>
+<span id="cb69-32"><a href="#cb69-32" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb69-33"><a href="#cb69-33" aria-hidden="true" tabindex="-1"></a>    plt.title(<span class="st">"2025 FBS Talent Composite vs. Regular Season Wins"</span>, fontsize<span class="op">=</span><span class="dv">14</span>, fontweight<span class="op">=</span><span class="st">'bold'</span>)</span>
+<span id="cb69-34"><a href="#cb69-34" aria-hidden="true" tabindex="-1"></a>    plt.suptitle(<span class="st">"Dashed line indicates baseline OLS expected wins given roster talent"</span>, fontsize<span class="op">=</span><span class="dv">10</span>, color<span class="op">=</span><span class="st">'gray'</span>, y<span class="op">=</span><span class="fl">0.92</span>)</span>
+<span id="cb69-35"><a href="#cb69-35" aria-hidden="true" tabindex="-1"></a>    plt.xlabel(<span class="st">"247Sports Team Talent Score"</span>)</span>
+<span id="cb69-36"><a href="#cb69-36" aria-hidden="true" tabindex="-1"></a>    plt.ylabel(<span class="st">"Actual Regular Season Wins"</span>)</span>
+<span id="cb69-37"><a href="#cb69-37" aria-hidden="true" tabindex="-1"></a>    plt.grid(<span class="va">True</span>, linestyle<span class="op">=</span><span class="st">':'</span>, alpha<span class="op">=</span><span class="fl">0.5</span>)</span>
+<span id="cb69-38"><a href="#cb69-38" aria-hidden="true" tabindex="-1"></a>    plt.tight_layout()</span>
+<span id="cb69-39"><a href="#cb69-39" aria-hidden="true" tabindex="-1"></a>    plt.show()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</details>
+</div>
+</section>
+
+</main>
+<!-- /main column -->
+<script id="quarto-html-after-body" type="application/javascript">
+  window.document.addEventListener("DOMContentLoaded", function (event) {
+    const icon = "";
+    const anchorJS = new window.AnchorJS();
+    anchorJS.options = {
+      placement: 'right',
+      icon: icon
+    };
+    anchorJS.add('.anchored');
+    const isCodeAnnotation = (el) => {
+      for (const clz of el.classList) {
+        if (clz.startsWith('code-annotation-')) {                     
+          return true;
+        }
+      }
+      return false;
+    }
+    const onCopySuccess = function(e) {
+      // button target
+      const button = e.trigger;
+      // don't keep focus
+      button.blur();
+      // flash "checked"
+      button.classList.add('code-copy-button-checked');
+      var currentTitle = button.getAttribute("title");
+      button.setAttribute("title", "Copied!");
+      let tooltip;
+      if (window.bootstrap) {
+        button.setAttribute("data-bs-toggle", "tooltip");
+        button.setAttribute("data-bs-placement", "left");
+        button.setAttribute("data-bs-title", "Copied!");
+        tooltip = new bootstrap.Tooltip(button, 
+          { trigger: "manual", 
+            customClass: "code-copy-button-tooltip",
+            offset: [0, -8]});
+        tooltip.show();    
+      }
+      setTimeout(function() {
+        if (tooltip) {
+          tooltip.hide();
+          button.removeAttribute("data-bs-title");
+          button.removeAttribute("data-bs-toggle");
+          button.removeAttribute("data-bs-placement");
+        }
+        button.setAttribute("title", currentTitle);
+        button.classList.remove('code-copy-button-checked');
+      }, 1000);
+      // clear code selection
+      e.clearSelection();
+    }
+    const getTextToCopy = function(trigger) {
+      const outerScaffold = trigger.parentElement.cloneNode(true);
+      const codeEl = outerScaffold.querySelector('code');
+      for (const childEl of codeEl.children) {
+        if (isCodeAnnotation(childEl)) {
+          childEl.remove();
+        }
+      }
+      return codeEl.innerText;
+    }
+    const clipboard = new window.ClipboardJS('.code-copy-button:not([data-in-quarto-modal])', {
+      text: getTextToCopy
+    });
+    clipboard.on('success', onCopySuccess);
+    if (window.document.getElementById('quarto-embedded-source-code-modal')) {
+      const clipboardModal = new window.ClipboardJS('.code-copy-button[data-in-quarto-modal]', {
+        text: getTextToCopy,
+        container: window.document.getElementById('quarto-embedded-source-code-modal')
+      });
+      clipboardModal.on('success', onCopySuccess);
+    }
+      var localhostRegex = new RegExp(/^(?:http|https):\/\/localhost\:?[0-9]*\//);
+      var mailtoRegex = new RegExp(/^mailto:/);
+        var filterRegex = new RegExp('/' + window.location.host + '/');
+      var isInternal = (href) => {
+          return filterRegex.test(href) || localhostRegex.test(href) || mailtoRegex.test(href);
+      }
+      // Inspect non-navigation links and adorn them if external
+     var links = window.document.querySelectorAll('a[href]:not(.nav-link):not(.navbar-brand):not(.toc-action):not(.sidebar-link):not(.sidebar-item-toggle):not(.pagination-link):not(.no-external):not([aria-hidden]):not(.dropdown-item):not(.quarto-navigation-tool):not(.about-link)');
+      for (var i=0; i<links.length; i++) {
+        const link = links[i];
+        if (!isInternal(link.href)) {
+          // undo the damage that might have been done by quarto-nav.js in the case of
+          // links that we want to consider external
+          if (link.dataset.originalHref !== undefined) {
+            link.href = link.dataset.originalHref;
+          }
+        }
+      }
+    function tippyHover(el, contentFn, onTriggerFn, onUntriggerFn) {
+      const config = {
+        allowHTML: true,
+        maxWidth: 500,
+        delay: 100,
+        arrow: false,
+        appendTo: function(el) {
+            return el.parentElement;
+        },
+        interactive: true,
+        interactiveBorder: 10,
+        theme: 'quarto',
+        placement: 'bottom-start',
+      };
+      if (contentFn) {
+        config.content = contentFn;
+      }
+      if (onTriggerFn) {
+        config.onTrigger = onTriggerFn;
+      }
+      if (onUntriggerFn) {
+        config.onUntrigger = onUntriggerFn;
+      }
+      window.tippy(el, config); 
+    }
+    const noterefs = window.document.querySelectorAll('a[role="doc-noteref"]');
+    for (var i=0; i<noterefs.length; i++) {
+      const ref = noterefs[i];
+      tippyHover(ref, function() {
+        // use id or data attribute instead here
+        let href = ref.getAttribute('data-footnote-href') || ref.getAttribute('href');
+        try { href = new URL(href).hash; } catch {}
+        const id = href.replace(/^#\/?/, "");
+        const note = window.document.getElementById(id);
+        if (note) {
+          return note.innerHTML;
+        } else {
+          return "";
+        }
+      });
+    }
+    const xrefs = window.document.querySelectorAll('a.quarto-xref');
+    const processXRef = (id, note) => {
+      // Strip column container classes
+      const stripColumnClz = (el) => {
+        el.classList.remove("page-full", "page-columns");
+        if (el.children) {
+          for (const child of el.children) {
+            stripColumnClz(child);
+          }
+        }
+      }
+      stripColumnClz(note)
+      if (id === null || id.startsWith('sec-')) {
+        // Special case sections, only their first couple elements
+        const container = document.createElement("div");
+        if (note.children && note.children.length > 2) {
+          container.appendChild(note.children[0].cloneNode(true));
+          for (let i = 1; i < note.children.length; i++) {
+            const child = note.children[i];
+            if (child.tagName === "P" && child.innerText === "") {
+              continue;
+            } else {
+              container.appendChild(child.cloneNode(true));
+              break;
+            }
+          }
+          if (window.Quarto?.typesetMath) {
+            window.Quarto.typesetMath(container);
+          }
+          return container.innerHTML
+        } else {
+          if (window.Quarto?.typesetMath) {
+            window.Quarto.typesetMath(note);
+          }
+          return note.innerHTML;
+        }
+      } else {
+        // Remove any anchor links if they are present
+        const anchorLink = note.querySelector('a.anchorjs-link');
+        if (anchorLink) {
+          anchorLink.remove();
+        }
+        if (window.Quarto?.typesetMath) {
+          window.Quarto.typesetMath(note);
+        }
+        if (note.classList.contains("callout")) {
+          return note.outerHTML;
+        } else {
+          return note.innerHTML;
+        }
+      }
+    }
+    for (var i=0; i<xrefs.length; i++) {
+      const xref = xrefs[i];
+      tippyHover(xref, undefined, function(instance) {
+        instance.disable();
+        let url = xref.getAttribute('href');
+        let hash = undefined; 
+        if (url.startsWith('#')) {
+          hash = url;
+        } else {
+          try { hash = new URL(url).hash; } catch {}
+        }
+        if (hash) {
+          const id = hash.replace(/^#\/?/, "");
+          const note = window.document.getElementById(id);
+          if (note !== null) {
+            try {
+              const html = processXRef(id, note.cloneNode(true));
+              instance.setContent(html);
+            } finally {
+              instance.enable();
+              instance.show();
+            }
+          } else {
+            // See if we can fetch this
+            fetch(url.split('#')[0])
+            .then(res => res.text())
+            .then(html => {
+              const parser = new DOMParser();
+              const htmlDoc = parser.parseFromString(html, "text/html");
+              const note = htmlDoc.getElementById(id);
+              if (note !== null) {
+                const html = processXRef(id, note);
+                instance.setContent(html);
+              } 
+            }).finally(() => {
+              instance.enable();
+              instance.show();
+            });
+          }
+        } else {
+          // See if we can fetch a full url (with no hash to target)
+          // This is a special case and we should probably do some content thinning / targeting
+          fetch(url)
+          .then(res => res.text())
+          .then(html => {
+            const parser = new DOMParser();
+            const htmlDoc = parser.parseFromString(html, "text/html");
+            const note = htmlDoc.querySelector('main.content');
+            if (note !== null) {
+              // This should only happen for chapter cross references
+              // (since there is no id in the URL)
+              // remove the first header
+              if (note.children.length > 0 && note.children[0].tagName === "HEADER") {
+                note.children[0].remove();
+              }
+              const html = processXRef(null, note);
+              instance.setContent(html);
+            } 
+          }).finally(() => {
+            instance.enable();
+            instance.show();
+          });
+        }
+      }, function(instance) {
+      });
+    }
+        let selectedAnnoteEl;
+        const selectorForAnnotation = ( cell, annotation) => {
+          let cellAttr = 'data-code-cell="' + cell + '"';
+          let lineAttr = 'data-code-annotation="' +  annotation + '"';
+          const selector = 'span[' + cellAttr + '][' + lineAttr + ']';
+          return selector;
+        }
+        const selectCodeLines = (annoteEl) => {
+          const doc = window.document;
+          const targetCell = annoteEl.getAttribute("data-target-cell");
+          const targetAnnotation = annoteEl.getAttribute("data-target-annotation");
+          const annoteSpan = window.document.querySelector(selectorForAnnotation(targetCell, targetAnnotation));
+          const lines = annoteSpan.getAttribute("data-code-lines").split(",");
+          const lineIds = lines.map((line) => {
+            return targetCell + "-" + line;
+          })
+          let top = null;
+          let height = null;
+          let parent = null;
+          if (lineIds.length > 0) {
+              //compute the position of the single el (top and bottom and make a div)
+              const el = window.document.getElementById(lineIds[0]);
+              top = el.offsetTop;
+              height = el.offsetHeight;
+              parent = el.parentElement.parentElement;
+            if (lineIds.length > 1) {
+              const lastEl = window.document.getElementById(lineIds[lineIds.length - 1]);
+              const bottom = lastEl.offsetTop + lastEl.offsetHeight;
+              height = bottom - top;
+            }
+            if (top !== null && height !== null && parent !== null) {
+              // cook up a div (if necessary) and position it 
+              let div = window.document.getElementById("code-annotation-line-highlight");
+              if (div === null) {
+                div = window.document.createElement("div");
+                div.setAttribute("id", "code-annotation-line-highlight");
+                div.style.position = 'absolute';
+                parent.appendChild(div);
+              }
+              div.style.top = top - 2 + "px";
+              div.style.height = height + 4 + "px";
+              div.style.left = 0;
+              let gutterDiv = window.document.getElementById("code-annotation-line-highlight-gutter");
+              if (gutterDiv === null) {
+                gutterDiv = window.document.createElement("div");
+                gutterDiv.setAttribute("id", "code-annotation-line-highlight-gutter");
+                gutterDiv.style.position = 'absolute';
+                const codeCell = window.document.getElementById(targetCell);
+                const gutter = codeCell.querySelector('.code-annotation-gutter');
+                gutter.appendChild(gutterDiv);
+              }
+              gutterDiv.style.top = top - 2 + "px";
+              gutterDiv.style.height = height + 4 + "px";
+            }
+            selectedAnnoteEl = annoteEl;
+          }
+        };
+        const unselectCodeLines = () => {
+          const elementsIds = ["code-annotation-line-highlight", "code-annotation-line-highlight-gutter"];
+          elementsIds.forEach((elId) => {
+            const div = window.document.getElementById(elId);
+            if (div) {
+              div.remove();
+            }
+          });
+          selectedAnnoteEl = undefined;
+        };
+          // Handle positioning of the toggle
+      window.addEventListener(
+        "resize",
+        throttle(() => {
+          elRect = undefined;
+          if (selectedAnnoteEl) {
+            selectCodeLines(selectedAnnoteEl);
+          }
+        }, 10)
+      );
+      function throttle(fn, ms) {
+      let throttle = false;
+      let timer;
+        return (...args) => {
+          if(!throttle) { // first call gets through
+              fn.apply(this, args);
+              throttle = true;
+          } else { // all the others get throttled
+              if(timer) clearTimeout(timer); // cancel #2
+              timer = setTimeout(() => {
+                fn.apply(this, args);
+                timer = throttle = false;
+              }, ms);
+          }
+        };
+      }
+        // Attach click handler to the DT
+        const annoteDls = window.document.querySelectorAll('dt[data-target-cell]');
+        for (const annoteDlNode of annoteDls) {
+          annoteDlNode.addEventListener('click', (event) => {
+            const clickedEl = event.target;
+            if (clickedEl !== selectedAnnoteEl) {
+              unselectCodeLines();
+              const activeEl = window.document.querySelector('dt[data-target-cell].code-annotation-active');
+              if (activeEl) {
+                activeEl.classList.remove('code-annotation-active');
+              }
+              selectCodeLines(clickedEl);
+              clickedEl.classList.add('code-annotation-active');
+            } else {
+              // Unselect the line
+              unselectCodeLines();
+              clickedEl.classList.remove('code-annotation-active');
+            }
+          });
+        }
+    const findCites = (el) => {
+      const parentEl = el.parentElement;
+      if (parentEl) {
+        const cites = parentEl.dataset.cites;
+        if (cites) {
+          return {
+            el,
+            cites: cites.split(' ')
+          };
+        } else {
+          return findCites(el.parentElement)
+        }
+      } else {
+        return undefined;
+      }
+    };
+    var bibliorefs = window.document.querySelectorAll('a[role="doc-biblioref"]');
+    for (var i=0; i<bibliorefs.length; i++) {
+      const ref = bibliorefs[i];
+      const citeInfo = findCites(ref);
+      if (citeInfo) {
+        tippyHover(citeInfo.el, function() {
+          var popup = window.document.createElement('div');
+          citeInfo.cites.forEach(function(cite) {
+            var citeDiv = window.document.createElement('div');
+            citeDiv.classList.add('hanging-indent');
+            citeDiv.classList.add('csl-entry');
+            var biblioDiv = window.document.getElementById('ref-' + cite);
+            if (biblioDiv) {
+              citeDiv.innerHTML = biblioDiv.innerHTML;
+            }
+            popup.appendChild(citeDiv);
+          });
+          return popup.innerHTML;
+        });
+      }
+    }
+  });
+  </script>
+</div> <!-- /content -->
+
+
+
+
+</body></html>

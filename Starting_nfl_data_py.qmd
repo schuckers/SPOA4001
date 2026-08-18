@@ -1,0 +1,666 @@
+---
+title: "Introduction to NFL Data Analysis with Python (`nfl_data_py`)"
+subtitle: "SPOA 4001/ItCS 5010: American Football Analytics"
+author: "Schuckers"
+date: "2026-08-16"
+format:
+  html:
+    toc: true
+    toc-depth: 3
+    number-sections: true
+    code-fold: show
+    code-summary: "Show Python Code"
+    theme: flatly
+    highlight-style: github
+execute:
+  output: false
+  warning: false
+  message: false
+---
+
+### Overview
+
+In advanced sports analytics, play-by-play data provides the granular foundation needed to evaluate team efficiency, player performance, and tactical decisions. In this lab, we utilize **`nfl_data_py`**, a Python package that provides fast access to cleaned NFL play-by-play data embedded with advanced statistical metrics.
+
+
+Below code chunk is for Schuckers and testing in Rstudio
+```{r}
+ #library(reticulate)
+ #Sys.setenv(RETICULATE_PYTHON = "C:\\Users\\mschuck1\\AppData\\Local\\Programs\\Python\\PYTHON313\\python.exe")
+
+```
+
+### Environment Setup & Required Libraries
+
+Ensure you have the required packages installed before running this document:
+
+NOTE I had some issues with installing nfl_data_py and Google gave me this: "Installing nfl_data_py often fails because current releases restrict numpy to version 1.x due to breaking pandas/numpy API updates. This causes conflict errors on Python 3.13 or environments with numpy 2.0+"  I did the following commented code to get it to run.
+
+Some code you need to run
+```{python}
+#pip install "numpy>=2.0" pandas requests statsmodels great_tables adjustText fastparquet tabulate pyarrow sporsdataverse
+#pip install nfl_data_py --no-deps
+```
+
+Some code that might need to be run:
+```{python}
+#Uncomment if packages are not yet installed
+#pip install pandas numpy matplotlib seaborn nfl_data_py statsmodels great_tables adjustText requests pyarrow  tabulate
+```
+
+```{python}
+import os
+import tabulate
+import requests
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+import seaborn as sns
+import nfl_data_py as nfl
+import statsmodels.formula.api as smf
+import pyarrow
+import sportsdataverse as sdv
+import polars as pl
+from great_tables import GT, md
+from adjustText import adjust_text
+
+```
+
+```{python}
+# Set global display preferences
+pd.set_option('display.max_columns', None)
+pd.set_option('display.float_format', lambda x: '%.3f' % x)
+```
+
+Starting with Play by Play (pbp) data
+
+In the interest of speed, I've only taken regular season data from the first 4 weeks of the 2025 season.  
+```{python}
+# Fetch 2025 play-by-play data
+
+raw_pbp_2025 = nfl.import_pbp_data([2025])
+
+# Filter for Weeks 1-4 regular season scrimmage plays
+pbp_w1_4 = raw_pbp_2025[
+    (raw_pbp_2025['season_type'] == 'REG') &
+    (raw_pbp_2025['week'] <= 4) &
+    (raw_pbp_2025['posteam'].notna()) &
+    (raw_pbp_2025['play_type'].isin(['pass', 'run']) | (raw_pbp_2025['pass'] == 1) | (raw_pbp_2025['rush'] == 1)) &
+    (raw_pbp_2025['epa'].notna())
+].copy()
+```
+
+
+```{python}
+
+# Inspect dataset dimensions
+print("Dataset dimensions (rows x cols):", pbp_w1_4.shape)
+```
+
+What variables are available to us:  
+```{python}
+list(pbp_w1_4.columns)
+```
+
+Only ~370 features/variables per play.  Let's take a look at the first 6 rows of these data:  
+
+```{python}
+pbp_w1_4.head(6)
+```
+
+The next set of code aggregates all of the play by play data by team. We get some variables based upon expected points added (EPA) per play. We do this aggregation by offense and defense then join them back together.  
+```{python}
+# Offensive Aggregation (posteam)
+offense_summary = pbp_w1_4.groupby('posteam').apply(
+    lambda x: pd.Series({
+        'off_plays': len(x),
+        'off_epa_per_play': x['epa'].mean(),
+        'pass_epa': x.loc[x['pass'] == 1, 'epa'].mean(),
+        'rush_epa': x.loc[x['rush'] == 1, 'epa'].mean(),
+        'off_success_rate': x['success'].mean(),
+        'dropback_pct': (x['pass'] == 1).mean()
+    }),
+    include_groups=False
+).reset_index()
+
+# Defensive Aggregation (defteam)
+defense_summary = pbp_w1_4.groupby('defteam').apply(
+    lambda x: pd.Series({
+        'def_plays': len(x),
+        'def_epa_allowed': x['epa'].mean(),
+        'def_pass_epa_allowed': x.loc[x['pass'] == 1, 'epa'].mean(),
+        'def_rush_epa_allowed': x.loc[x['rush'] == 1, 'epa'].mean(),
+        'def_success_rate_allowed': x['success'].mean()
+    }),
+    include_groups=False
+).reset_index()
+
+# Join Offense & Defense into a single Master Team Summary
+team_summary = pd.merge(
+    offense_summary, 
+    defense_summary, 
+    left_on='posteam', 
+    right_on='defteam'
+).rename(columns={'posteam': 'team'}).drop(columns=['defteam'])
+
+team_summary = team_summary.sort_values(by='off_epa_per_play', ascending=False)
+```
+
+
+```{python}
+# Display top 5 teams by Offensive EPA
+print("Top 5 Offensive Teams:")
+print(team_summary.head(5).round(3).to_markdown(index=False))
+
+# Display top 6 teams by Defensive EPA
+team_summary = team_summary.sort_values(by='def_epa_allowed', ascending=True)
+print("\nTop 6 Defensive Teams:")
+print(team_summary.head(6).round(3).to_markdown(index=False))
+```
+
+From the data above, which was the third best team on offensive EPA/play from these data?  Let's make a better table. 
+
+```{python}
+# Reorder the data for display
+team_summary = team_summary.sort_values(by='off_epa_per_play', ascending=False)
+```
+
+```{python}
+# Create a pretty table using Great Tables
+(
+    GT(team_summary)
+    .tab_header(
+        title=md("**NFL Team Performance Summary: 2025 (Weeks 1–4)**"),
+        subtitle="Offensive and Defensive Efficiency Metrics Calculated via Python"
+    )
+    .cols_label(
+        team="Team",
+        off_plays="Off. Plays",
+        off_epa_per_play="Off EPA/Play",
+        pass_epa="Pass EPA",
+        rush_epa="Rush EPA",
+        off_success_rate="Off. Success Rate",
+        dropback_pct="Pass Rate",
+        def_epa_allowed="Def EPA/Play",
+        def_success_rate_allowed="Def. Success Rate"
+    )
+    .cols_hide(columns=["def_plays", "def_pass_epa_allowed", "def_rush_epa_allowed"])
+    .fmt_number(
+        columns=["off_epa_per_play", "pass_epa", "rush_epa", "def_epa_allowed"],
+        decimals=3
+    )
+    .fmt_percent(
+        columns=["off_success_rate", "dropback_pct", "def_success_rate_allowed"],
+        decimals=1
+    )
+    .tab_source_note(
+        source_note="Data Source: nfl_data_py | Scrimmage plays only (Weeks 1–4, 2025)"
+    )
+)
+```
+
+Let's visualize some of these data.  
+```{python}
+# Compute tier averages for reference lines
+avg_off_epa = team_summary['off_epa_per_play'].mean()
+avg_def_epa = team_summary['def_epa_allowed'].mean()
+
+plt.figure(figsize=(10, 7))
+
+# Scatter plot
+plt.scatter(team_summary['off_epa_per_play'], team_summary['def_epa_allowed'], color='skyblue', edgecolors='navy', s=80, alpha=0.8)
+
+# Reference quadrant lines
+plt.axhline(avg_def_epa, color='gray', linestyle='--', linewidth=1)
+plt.axvline(avg_off_epa, color='gray', linestyle='--', linewidth=1)
+
+# Annotate team labels using adjustText to prevent overlapping
+texts = []
+for _, row in team_summary.iterrows():
+    texts.append(plt.text(row['off_epa_per_play'], row['def_epa_allowed'], row['team'], fontsize=9, fontweight='bold'))
+
+adjust_text(texts, arrowprops=dict(arrowstyle='-', color='gray', lw=0.5))
+
+# Invert Y-axis so lower EPA allowed (better defense) is higher up
+plt.gca().invert_yaxis()
+
+plt.title("2025 NFL Team Tier Breakdown (Weeks 1–4)", fontsize=14, fontweight='bold')
+plt.suptitle("Offensive Efficiency vs. Defensive Efficiency", fontsize=11, color='gray', y=0.92)
+plt.xlabel("Offensive EPA per Play (Higher = Better Offense)", fontsize=11)
+plt.ylabel("Defensive EPA per Play Allowed (Lower = Better Defense)", fontsize=11)
+plt.grid(True, linestyle=':', alpha=0.6)
+plt.tight_layout()
+plt.show()
+```
+
+
+Note that the plot above has an unusual y-axis. Why is that?  
+
+## Tasks
+In sports analytics, plays occurring when the win probability is near 0% or 100% ("garbage time") can skew team metrics. Modify the filtering logic to exclude plays where win probability < 0.05 or > 0.95. How does removing garbage time affect the top 3 offensive teams?  
+
+#### Task 1
+Write some code to filter out "garbage time"
+```{python}
+# Student Workspace: Filter out garbage time
+```
+
+Compute updated team summaries and compare results
+
+
+#### Task 2
+
+Is this the best definition of garbage time? How might you define garbage time?  
+
+##Drive summary data
+
+So we are going back to the play by play data from 2025 and now we are going to look at some drive summaries.  
+
+
+
+```{python}
+pbp_clean = pbp_w1_4[
+    (pbp_w1_4['drive'].notna()) &
+    (pbp_w1_4['epa'].notna()) &
+    (pbp_w1_4['play'] == 1) &
+    (pbp_w1_4['play_type'].isin(['run', 'pass']))
+].copy()
+```
+
+Next we group the data and since drives are numbered from the beginning of each game, we have to group by game and drive.  
+
+```{python}
+drive_level_data = pbp_clean.groupby(['game_id', 'drive', 'posteam', 'defteam']).agg(
+    drive_total_epa=('epa', 'sum'),
+    drive_mean_epa=('epa', 'mean'),
+    play_count=('epa', 'count'),
+    drive_result=('fixed_drive_result', 'first')
+).reset_index()
+```
+
+Next take the drive level data and get some offensive and defensive summaries:  
+```{python}
+offense_drive_summary = drive_level_data[drive_level_data['posteam'].notna()].groupby('posteam').agg(
+    drives=('drive_total_epa', 'count'),
+    mean_drive_epa=('drive_total_epa', 'mean'),
+    median_drive_epa=('drive_total_epa', 'median'),
+    total_off_epa=('drive_total_epa', 'sum'),
+    avg_plays_per_dr=('play_count', 'mean')
+).reset_index().sort_values(by='mean_drive_epa', ascending=False)
+
+print("Top 6 Offensive Drive Summaries:")
+print(offense_drive_summary.head(6).round(3).to_markdown(index=False))
+
+defense_drive_summary = drive_level_data[drive_level_data['defteam'].notna()].groupby('defteam').agg(
+    drives_def=('drive_total_epa', 'count'),
+    mean_epa_allowed=('drive_total_epa', 'mean'),
+    median_epa_allow=('drive_total_epa', 'median'),
+    total_def_epa=('drive_total_epa', 'sum'),
+    avg_plays_allowed=('play_count', 'mean')
+).reset_index().sort_values(by='mean_epa_allowed', ascending=True)
+
+print("\nTop 6 Defensive Drive Summaries:")
+print(defense_drive_summary.head(6).round(3).to_markdown(index=False))
+```
+
+### Task 3
+Find another metric, not EPA, and calculate the summaries (mean, median, sum) for each drive in the raw_pbp_2025 dataset. Then do it for only pass plays. Which team was the best on your metric for all plays? for only pass plays?  
+
+```{python}
+
+```
+
+
+## College Football Data
+Below we do some practice with loading, summarizing and visualizing the college football data.  Using direct parquet imports from public repositories fetches pre-processed play-by-play data directly without requiring API key authentication. We aggregate play-level yardage to quantify offensive and defensive Yards Per Play (YPP) across the 2025 season.  
+
+```{python}
+# load the 2025 season
+plays_df_polars = sdv.cfb.load_cfb_pbp(seasons=[2025], return_as_pandas=False)
+games_df_polars = sdv.cfb.load_cfb_schedule(seasons=[2025], return_as_pandas=False)
+
+# convert the polar files to pandas dataframe
+pbp_2025_raw = plays_df_polars.to_pandas(use_pyarrow_extension_array=False)
+games_df=games_df_polars.to_pandas(use_pyarrow_extension_array=False)
+print("\n".join(games_df.columns))
+# Filter down game metadata to isolate the home/away division tags
+games_meta = games_df[['game_id', 'home_division', 'away_division','home_conference','away_conference']]
+
+# 4. Merge the division tags onto your play-by-play data
+final_pbp = pd.merge(pbp_2025_raw, games_meta, on='game_id', how='left')
+
+
+```
+
+
+```{python}
+col_list = final_pbp.columns.tolist()
+pd.set_option('display.max_seq_items', None)
+print(col_list) 
+print("\n".join(final_pbp.columns))
+```
+
+
+
+
+```{python}
+# Filter for FBS vs FBS games and valid rushing/passing attempts
+pbp_2025 = final_pbp[
+    (final_pbp['home_division'] == 'fbs') & 
+    (final_pbp['away_division'] == 'fbs') &
+    ((final_pbp['rush'] == 1) | (final_pbp['pass'] == 1)) &
+    (final_pbp['statYardage'].notna())
+].copy()
+
+pbp_2025 = pbp_2025.rename(columns={'statYardage': 'yards_gained'})
+
+print(f"Dataset successfully loaded. Dimensions: {pbp_2025.shape}")
+```
+
+
+
+Note pbp for all college is a big file and includes teams from FBS, FCS, D2 and D3. We're only interested in FBS v FBS games today.  Below we get the yards per play gained for offenses.  
+```{python}
+# Compute offensive YPP by team
+off_ypp = pbp_2025.groupby(['pos_team', ]).agg(
+    off_plays=('yards_gained', 'count'),
+    off_ypp=('yards_gained', 'mean')
+).reset_index().rename(columns={'pos_team': 'team'}).sort_values(by='off_ypp', ascending=False)
+```
+
+# Let's look at who is best on this metric
+```{python}
+print(off_ypp.head(15).round(3).to_markdown(index=False))
+```
+
+Below we get the yards per play gained against defenses.  
+```{python}
+# Compute defensive YPP allowed by team
+def_ypp = pbp_2025.groupby('def_pos_team').agg(
+    def_plays=('yards_gained', 'count'),
+    def_ypp=('yards_gained', 'mean')
+).reset_index().rename(columns={'def_pos_team': 'team'}).sort_values(by='def_ypp', ascending=True)
+```
+
+```{python}
+# Let's look at who is best
+
+print(def_ypp.head(15).round(3).to_markdown(index=False))
+```
+Below we join and classify the teams into tiers.  
+```{python}
+# Join metrics and classify into performance tiers
+all_ypp = pd.merge(off_ypp, def_ypp, on='team')
+
+mean_off = all_ypp['off_ypp'].mean()
+mean_def = all_ypp['def_ypp'].mean()
+
+conditions = [
+    (all_ypp['off_ypp'] > mean_off) & (all_ypp['def_ypp'] < mean_def),
+    (all_ypp['off_ypp'] > mean_off) & (all_ypp['def_ypp'] >= mean_def),
+    (all_ypp['off_ypp'] <= mean_off) & (all_ypp['def_ypp'] < mean_def)
+]
+choices = ["Elite", "High Offense / Low Defense", "Low Offense / High Defense"]
+all_ypp['tier'] = np.select(conditions, choices, default="Rebuilding")
+
+all_ypp['net_ypp'] = all_ypp['off_ypp'] - all_ypp['def_ypp']
+all_ypp = all_ypp.sort_values(by='net_ypp', ascending=False)
+```
+
+Print out the data in a nice format.
+
+```{python}
+# Render structured output table
+(
+    GT(all_ypp[['team', 'off_ypp', 'def_ypp', 'net_ypp', 'tier']])
+    .tab_header(
+        title=md("**2025 FBS Yards Per Play Summary**"),
+        subtitle="Evaluated on all rushing and passing attempts"
+    )
+    .cols_label(
+        team="Team",
+        off_ypp="Offensive YPP",
+        def_ypp="Defensive YPP",
+        net_ypp="Net YPP Margin",
+        tier="Performance Tier"
+    )
+    .fmt_number(columns=["off_ypp", "def_ypp", "net_ypp"], decimals=2)
+)
+```
+
+Now a  visualization with labels to make things readable[cite: 1].
+
+```{python}
+plt.figure(figsize=(10, 7))
+
+sns.scatterplot(
+    data=all_ypp, 
+    x='off_ypp', 
+    y='def_ypp', 
+    hue='tier', 
+    palette='Set1', 
+    s=70
+)
+
+plt.axvline(all_ypp['off_ypp'].mean(), color='gray', linestyle='--')
+plt.axhline(all_ypp['def_ypp'].mean(), color='gray', linestyle='--')
+
+texts = []
+for _, row in all_ypp.iterrows():
+    texts.append(plt.text(row['off_ypp'], row['def_ypp'], row['team'], fontsize=9))
+
+adjust_text(texts, arrowprops=dict(arrowstyle='-', color='gray', lw=0.3))
+
+plt.gca().invert_yaxis()
+plt.title("2025 Team Yards Per Play Matrix", fontsize=14, fontweight='bold')
+plt.suptitle("Top-Right quadrant indicates above-average offensive and defensive performance", fontsize=7, color='gray', y=0.92)
+plt.xlabel("Offensive YPP (Higher is Better)")
+plt.ylabel("Defensive YPP Allowed (Lower is Better)")
+plt.legend(title="Tier", loc='lower center', bbox_to_anchor=(0.5, -0.18), ncol=4)
+plt.tight_layout()
+plt.show()
+```
+
+```{python}
+import matplotlib.pyplot as plt
+import seaborn as sns
+from adjustText import adjust_text
+
+# Set high-DPI theme and clean grid style
+sns.set_theme(style="whitegrid")
+fig, ax = plt.subplots(figsize=(12, 8), dpi=150)
+
+# 1. Plot points with distinct borders and subtle transparency
+sns.scatterplot(
+    data=all_ypp, 
+    x='off_ypp', 
+    y='def_ypp', 
+    hue='tier', 
+    palette='Set1', 
+    s=90,
+    edgecolor='black',
+    linewidth=0.5,
+    alpha=0.85,
+    ax=ax
+)
+
+# 2. Add quadrant reference lines
+mean_off = all_ypp['off_ypp'].mean()
+mean_def = all_ypp['def_ypp'].mean()
+
+ax.axvline(mean_off, color='gray', linestyle='--', linewidth=1, alpha=0.7)
+ax.axhline(mean_def, color='gray', linestyle='--', linewidth=1, alpha=0.7)
+
+# 3. Add team text labels with translucent background boxes
+texts = []
+for _, row in all_ypp.iterrows():
+    t = ax.text(
+        row['off_ypp'], 
+        row['def_ypp'], 
+        row['team'], 
+        fontsize=8,
+        fontweight='medium',
+        bbox=dict(boxstyle="round,pad=0.15", fc="white", ec="none", alpha=0.6)
+    )
+    texts.append(t)
+
+# Optimize label placement to prevent overlapping lines
+adjust_text(
+    texts, 
+    arrowprops=dict(arrowstyle='-', color='gray', lw=0.4, alpha=0.6),
+    expand=(1.2, 1.4),
+    force_text=(0.2, 0.4)
+)
+
+# 4. Invert Y-axis (Lower defensive YPP allowed = better defense)
+ax.invert_yaxis()
+
+# 5. Add background quadrant annotations
+xlim = ax.get_xlim()
+ylim = ax.get_ylim()  # Note: ylim is inverted
+
+ax.text(xlim[1], ylim[1], "GREAT OFFENSE\nGREAT DEFENSE  ", 
+        ha='right', va='top', fontsize=9, fontweight='bold', color='green', alpha=0.35)
+ax.text(xlim[0], ylim[0], "  POOR OFFENSE\n  POOR DEFENSE", 
+        ha='left', va='bottom', fontsize=9, fontweight='bold', color='red', alpha=0.35)
+
+# 6. Titles & Labels
+ax.set_title("2025 Team Yards Per Play Matrix", fontsize=15, fontweight='bold', pad=12)
+ax.set_xlabel("Offensive YPP (Higher is Better)", fontsize=11, labelpad=8)
+ax.set_ylabel("Defensive YPP Allowed (Lower is Better)", fontsize=11, labelpad=8)
+
+# 7. Clean Legend
+ax.legend(
+    title="Performance Tier", 
+    loc='upper center', 
+    bbox_to_anchor=(0.5, -0.1), 
+    ncol=4, 
+    frameon=True, 
+    facecolor='white', 
+    edgecolor='none'
+)
+
+plt.tight_layout()
+plt.show()
+```
+
+
+Task 4
+
+Repeat the analysis above for another metric. This time only include data from games where the score differential between the two teams was less than 21[cite: 1].
+
+
+
+Using your API keyIn the code below set your API key in your environment[cite: 1]:
+
+
+
+```{python}
+# Verify API key availability
+api_key = os.getenv("CFBD_API_KEY", "MullWLpxkoKVq3XEFcHdC+RiYq1VtVUbuTdPz9v954k7/YmfI0m05GVO2jn+k7aj")
+
+if api_key == "":
+    print("Warning: CFBD_API_KEY environment variable not detected.")
+else:
+    headers = {"Authorization": f"Bearer {api_key}"}
+```
+
+```{python}
+# Load live API endpoints: 2025 Team Talent Ratings & Game Results
+talent_resp = requests.get("https://api.collegefootballdata.com/talent", headers=headers, params={"year": 2025})
+games_resp = requests.get("https://api.collegefootballdata.com/games", headers=headers, params={"year": 2025, "seasonType": "regular"})
+
+talent_raw = pd.DataFrame(talent_resp.json()).rename(columns={"school": "team"})
+games_raw = pd.DataFrame(games_resp.json())
+print("\n".join(games_raw.columns))
+```
+
+Get wins for each team in 2025
+
+```{python}
+if 'games_raw' in locals():
+    # Calculate regular season wins per team
+    home_wins = games_raw[games_raw['homePoints'] > games_raw['awayPoints']].groupby('homeTeam').size().reset_index(name='wins').rename(columns={'homeTeam': 'team'})
+    away_wins = games_raw[games_raw['awayPoints'] > games_raw['homePoints']].groupby('awayTeam').size().reset_index(name='wins').rename(columns={'awayTeam': 'team'})
+
+    total_wins = pd.concat([home_wins, away_wins]).groupby('team')['wins'].sum().reset_index()
+```
+
+```{python}
+if 'talent_raw' in locals() and 'total_wins' in locals():
+    # Clean talent scores, join wins, and extract regression residuals
+    df_analytics = pd.merge(talent_raw[['team', 'talent']], total_wins, on='team').dropna()
+    df_analytics['talent_score'] = df_analytics['talent'].astype(float)
+```
+
+```{python}
+if 'df_analytics' in locals():
+    # Fit OLS model to derive expected wins and residual performance
+    model = smf.ols('wins ~ talent_score', data=df_analytics).fit()
+
+    df_analytics['expected_wins'] = model.predict(df_analytics)
+    df_analytics['win_residual'] = df_analytics['wins'] - df_analytics['expected_wins']
+    df_analytics['efficiency'] = np.where(df_analytics['win_residual'] >= 0, "Overperforming", "Underperforming")
+    df_analytics = df_analytics.sort_values(by='win_residual', ascending=False)
+
+    # Tabulate top 5 overperforming teams relative to talent
+    (
+        GT(df_analytics[['team', 'talent_score', 'wins', 'expected_wins', 'win_residual', 'efficiency']].head(5))
+        .tab_header(
+            title=md("**Top 5 Talent Overperformers (2025)**"),
+            subtitle="Teams exceeding expected win totals based on 247Sports Composite Talent"
+        )
+        .cols_label(
+            team="Team",
+            talent_score="Talent Score",
+            wins="Actual Wins",
+            expected_wins="Expected Wins",
+            win_residual="Win Surplus",
+            efficiency="Status"
+        )
+        .fmt_number(columns=["talent_score", "expected_wins", "win_residual"], decimals=2)
+    )
+```
+
+Make a visualization of talent vs Wins with the regression line on the plot[cite: 1]
+```{python}
+if 'df_analytics' in locals():
+    plt.figure(figsize=(10, 6))
+
+    # Regression trend line
+    sns.regplot(
+        data=df_analytics, 
+        x='talent_score', 
+        y='wins', 
+        color='black', 
+        line_kws={'linestyle': '--', 'linewidth': 1.5},
+        scatter=False
+    )
+
+    # Scatter plot colored by win residual
+    scatter = plt.scatter(
+        df_analytics['talent_score'], 
+        df_analytics['wins'], 
+        c=df_analytics['win_residual'], 
+        cmap='RdYlGn', 
+        s=60, 
+        alpha=0.85
+    )
+
+    cbar = plt.colorbar(scatter)
+    cbar.set_label("Win Surplus")
+
+    texts = []
+    for _, row in df_analytics.iterrows():
+        texts.append(plt.text(row['talent_score'], row['wins'], row['team'], fontsize=9))
+
+    adjust_text(texts, arrowprops=dict(arrowstyle='-', color='gray', lw=0.5))
+
+    plt.title("2025 FBS Talent Composite vs. Regular Season Wins", fontsize=14, fontweight='bold')
+    plt.suptitle("Dashed line indicates baseline OLS expected wins given roster talent", fontsize=10, color='gray', y=0.92)
+    plt.xlabel("247Sports Team Talent Score")
+    plt.ylabel("Actual Regular Season Wins")
+    plt.grid(True, linestyle=':', alpha=0.5)
+    plt.tight_layout()
+    plt.show()
+```
