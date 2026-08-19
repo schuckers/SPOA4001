@@ -6,7 +6,9 @@ format:
     toc: true
     theme: default
 execute:
-  eval: false
+  output: false
+  warning: false
+  message: false
 ---
 
 

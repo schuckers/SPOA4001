@@ -1,0 +1,305 @@
+---
+title: "Repeatability in the NFL"
+author: "Schuckers"
+format: 
+  html:
+    toc: true
+    theme: default
+execute:
+  output: false
+  warning: false
+  message: false
+---
+
+## Repeatability
+
+This code is just for running in RStudio to ensure the right python is running
+```{r}
+library(reticulate)
+Sys.setenv(RETICULATE_PYTHON = "C:\\Users\\mschuck1\\AppData\\Local\\Programs\\Python\\Python313\\python.exe")
+
+```
+
+Load the libraries/packages
+```{python}
+# Packages required: pandas, numpy, scipy, nfl_data_py, great_tables, matplotlib, seaborn
+import pandas as pd
+import numpy as np
+import nfl_data_py as nfl
+from scipy import stats
+import matplotlib.pyplot as plt
+import seaborn as sns
+from great_tables import GT
+
+
+# Set pandas options to display numbers clearly without scientific notation
+pd.set_option('display.float_format', lambda x: '%.4f' % x)
+```
+
+Let's get the most recent four season
+```{python}
+# Fetch 2022 through 2025 regular season play-by-play data
+seasons_vector = [2022, 2023, 2024, 2025]
+
+pbp_multi_raw = nfl.import_pbp_data(seasons_vector)
+
+pbp_multi = pbp_multi_raw[
+    (pbp_multi_raw['season_type'] == 'REG') &
+    (pbp_multi_raw['posteam'].notna()) &
+    ((pbp_multi_raw['play_type'].isin(['pass', 'run'])) | (pbp_multi_raw['pass'] == 1) | (pbp_multi_raw['rush'] == 1)) &
+    (pbp_multi_raw['epa'].notna())
+].copy()
+
+# Display dataset size across all 4 seasons
+print(f"Total analyzed scrimmage plays (2022–2025): {len(pbp_multi)}")
+```
+
+```{python}
+# Weekly Offensive Metrics
+weekly_offense = (
+    pbp_multi.groupby(['season', 'week', 'posteam'])
+    .apply(
+        lambda x: pd.Series({
+            'off_plays': len(x),
+            'off_epa_per_play': x['epa'].mean(),
+            'off_pass_epa': x.loc[x['pass'] == 1, 'epa'].mean(),
+            'off_rush_epa': x.loc[x['rush'] == 1, 'epa'].mean(),
+            'off_success_rate': x['success'].mean(),
+            'pass_rate': (x['pass'] == 1).mean(),
+            'complete_pass_pct': x['complete_pass'].mean()
+        }),
+        include_groups=False
+    )
+    .reset_index()
+)
+
+# Weekly Defensive Metrics
+weekly_defense = (
+    pbp_multi.groupby(['season', 'week', 'defteam'])
+    .agg(
+        def_plays=('epa', 'count'),
+        def_epa_allowed=('epa', 'mean'),
+        def_success_rate_allowed=('success', 'mean')
+    )
+    .reset_index()
+)
+
+# Master Panel Dataset (Weekly Team Summary)
+weekly_team_panel = (
+    pd.merge(
+        weekly_offense,
+        weekly_defense,
+        left_on=['season', 'week', 'posteam'],
+        right_on=['season', 'week', 'defteam']
+    )
+    .rename(columns={'posteam': 'team'})
+    .drop(columns=['defteam'])
+    .sort_values(by=['team', 'season', 'week'])
+)
+```
+
+
+```{python}
+# Preview first 10 rows of weekly panel data
+weekly_team_panel.head(10)
+```
+
+Next we are going to break the data into half seasons at week 9:
+
+```{python}
+weekly_team_panel['half_season'] = np.where(weekly_team_panel['week'] <= 9, "H1", "H2")
+
+halfseason_team_panel = (
+    weekly_team_panel.groupby(['season', 'team', 'half_season'])
+    .agg(
+        mean_off_plays=('off_plays', 'mean'),
+        mean_off_epa_per_play=('off_epa_per_play', 'mean'),
+        mean_off_pass_epa=('off_pass_epa', 'mean'),
+        mean_off_rush_epa=('off_rush_epa', 'mean'),
+        mean_off_success_rate=('off_success_rate', 'mean'),
+        mean_pass_rate=('pass_rate', 'mean'),
+        mean_complete_pass_pct=('complete_pass_pct', 'mean'),
+        mean_def_plays=('def_plays', 'mean'),
+        mean_def_epa_allowed=('def_epa_allowed', 'mean'),
+        mean_def_success_rate_allowed=('def_success_rate_allowed', 'mean')
+    )
+    .reset_index()
+)
+```
+
+
+### Task
+
+Explore these data and try to surmise which metrics are good ones.
+Correlations within the 2025 season
+
+```{python}
+# put your code for this task here
+```
+
+We'll start by doing just the 2025 season and running some correlations.
+
+```{python}
+# Get just the 2025 NFL play-by-play data
+pbp_raw = pbp_multi[(pbp_multi['season'])==2025]
+
+# Filter to regular season scrimmage plays
+pbp_clean = pbp_raw[
+    (pbp_raw['season_type'] == 'REG') &
+    (pbp_raw['play'] == 1) &
+    (pbp_raw['epa'].notna()) &
+    (pbp_raw['posteam'].notna()) &
+    (pbp_raw['play_type'].isin(['pass', 'run']))
+].copy()
+
+# Add indicators
+pbp_clean['half_season'] = np.where(pbp_clean['week'] <= 9, "H1", "H2")
+pbp_clean['is_explosive'] = np.where(pbp_clean['yards_gained'] >= 15, 1, 0)
+pbp_clean['is_success'] = np.where(pbp_clean['epa'] > 0, 1, 0)
+pbp_clean['turnover'] = ((pbp_clean['interception'] == 1) | (pbp_clean['fumble_lost'] == 1)).astype(int)
+```
+
+
+Turn the play-by-play data into drive-level data:
+```{python}
+
+# Drive-Level Metrics (drive_epa, turnovers_per_drive)
+drive_game = (
+    pbp_clean.groupby(['game_id', 'drive', 'posteam', 'half_season'])
+    .agg(
+        drive_total_epa=('epa', 'sum'),
+        drive_turnovers=('turnover', 'sum')
+    )
+    .reset_index()
+)
+
+drive_summary = (
+    drive_game.groupby(['posteam', 'half_season'])
+    .agg(
+        drive_epa=('drive_total_epa', 'mean'),
+        turnovers_per_drive=('drive_turnovers', 'mean')
+    )
+    .reset_index()
+)
+
+# Play-Level Metrics
+play_summary = (
+    pbp_clean.groupby(['posteam', 'half_season'])
+    .apply(
+        lambda x: pd.Series({
+            'mean_epa': x['epa'].mean(),
+            'success_rate': x['is_success'].mean(),
+            'pass_epa': x.loc[x['play_type'] == 'pass', 'epa'].mean(),
+            'rush_epa': x.loc[x['play_type'] == 'run', 'epa'].mean(),
+            'yards_per_play': x['yards_gained'].mean(),
+            'completion_pct': x.loc[x['pass_attempt'] == 1, 'complete_pass'].mean()
+        }),
+        include_groups=False
+    )
+    .reset_index()
+)
+
+# Combine metrics
+metrics_combined = pd.merge(play_summary, drive_summary, on=['posteam', 'half_season'])
+metrics_combined.head()
+```
+
+
+Reshape the data to calculate split-half correlations:
+
+```{python}
+# Pivot to wide format: metric_H1 vs metric_H2
+metrics_wide = metrics_combined.pivot(index='posteam', columns='half_season')
+metrics_wide.columns = [f"{val}_{stat}" for val, stat in metrics_wide.columns]
+metrics_wide = metrics_wide.reset_index()
+
+metric_list = [
+    "mean_epa", "success_rate", "pass_epa", "rush_epa",
+    "yards_per_play", "drive_epa", "completion_pct", "turnovers_per_drive"
+]
+```
+Next calculate the correlations between the first half and the second half
+
+```{python}
+# Compute Pearson r, p-value, and R-squared
+corr_data = []
+
+for m in metric_list:
+    col_h1 = f"{m}_H1"
+    col_h2 = f"{m}_H2"
+    
+    valid_data = metrics_wide[[col_h1, col_h2]].dropna()
+    r, p_val = stats.pearsonr(valid_data[col_h1], valid_data[col_h2])
+    
+    corr_data.append({
+        'metric': m,
+        'r': r,
+        'p_value': p_val,
+        'r_squared': r ** 2
+    })
+
+correlation_results = pd.DataFrame(corr_data).sort_values(by='r', ascending=False)
+```
+
+
+```{python}
+# Render Summary Table using Great Tables
+GT(correlation_results).tab_header(
+    title="2025 NFL Offense Split-Half Reliability",
+    subtitle="Pearson Correlation (r) between Weeks 1-9 (H1) and Weeks 10-18 (H2)"
+).cols_label(
+    metric="Offensive Metric",
+    r="Pearson r",
+    p_value="p-value",
+    r_squared="R²"
+).fmt_number(
+    columns=["r", "p_value", "r_squared"], 
+    decimals=3
+)
+```
+
+
+
+```{python}
+# Visualization
+plt.figure(figsize=(9, 5))
+ax = sns.barplot(
+    data=correlation_results,
+    x='r',
+    y='metric',
+    palette='mako',
+    hue='r',
+    legend=False
+)
+
+for p in ax.patches:
+    width = p.get_width()
+    ax.annotate(
+        f"r = {width:.2f}",
+        (width, p.get_y() + p.get_height() / 2.),
+        ha='left', va='center',
+        xytext=(5, 0),
+        textcoords='offset points',
+        fontsize=10
+    )
+
+plt.xlim(-0.2, 1.0)
+plt.title("Metric Repeatability: H1 vs H2 (2025 NFL Season)", fontsize=13)
+plt.xlabel("Split-Half Pearson Correlation (r)")
+plt.ylabel("Offensive Metric")
+plt.tight_layout()
+plt.show()
+```
+
+
+### Tasks
+
+Repeat the analysis above for the 2022, 2023, and 2024 seasons individually.
+Code snippet
+```{python}
+# Code goes here for 2022, 2023, 2024
+```
+
+
+How much do the correlations change from year to year? Does it make sense to combine the data from multiple years and do those correlations? Why or why not?
+
