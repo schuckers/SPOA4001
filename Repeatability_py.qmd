@@ -5,6 +5,7 @@ format:
   html:
     toc: true
     theme: default
+jupyter: python3
 execute:
   output: false
   warning: false
