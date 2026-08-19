@@ -15,7 +15,7 @@ For the assignment below, email to me a link to a github repository with working
 1. (25 points) Complete the [CCI Learning Module on Academic Integrity](https://docs.google.com/document/d/1Xl04oF_QFLxusBlFhFX6mEx3xEdTi1dgKeu5uYyoHCg/edit?usp=sharing)
 by following the instruction at that link.  Email me your screenshot.
 
-2. (35 points) Find good metrics for current P4 conference college football *offense* using data from the 2021 - 2025 regular seasons.  Use a comparison that is the first part of the season to the second part of the season.  Clearly state your conclusions about which metrics are **good** measures to use for predictive analytics about teams.
+2. (35 points) Find the three best **offensive**  metrics that you can for current P4 conference college football  using data from the 2021 - 2025 regular seasons.  Use a comparison that is the first part of the season to the second part of the season.  Clearly state your conclusions about which metrics are **best** measures to use for predictive analytics about teams and describe the other metrics that you tried.
 
 ### ITCS 5010 Students:
 
