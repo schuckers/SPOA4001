@@ -14,7 +14,7 @@ format:
     theme: flatly
     highlight-style: github
 execute:
-  output: false
+  output: true
   warning: false
   message: false
 ---
@@ -434,7 +434,7 @@ Repeat the analysis above for another metric.  This time only include data from 
 
 In the code below put your key within the quotes
 ```{r echo=FALSE}
-Sys.setenv(CFBD_API_KEY = "")
+Sys.setenv(CFBD_API_KEY = "MullWLpxkoKVq3XEFcHdC+RiYq1VtVUbuTdPz9v954k7/YmfI0m05GVO2jn+k7aj")
 ```
 
 ```{r}
