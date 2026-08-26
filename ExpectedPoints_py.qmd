@@ -1,0 +1,466 @@
+---
+title: Expected Points Model Calibration & Custom Regression
+jupyter: python3
+---
+
+Schuckers
+
+
+## Overview
+This notebook loads play-by-play data from the 2024 NFL season, removes garbage time (plays with win probability outside 5% to 95%), and visualizes how well the Expected Points (EP) model calibrates to actual next scoring events.
+
+
+```{python}
+import numpy as np
+import pandas as pd
+import matplotlib.pyplot as plt
+import seaborn as sns
+import statsmodels.formula.api as smf
+import nfl_data_py as nfl
+```
+
+```{python}
+# Plot styling
+sns.set_theme(style="whitegrid")
+plt.rcParams["font.family"] = "sans-serif"
+```
+
+Load the 2024 NFL season play-by-play data.
+
+```{python}
+
+pbp_2024 = nfl.import_pbp_data([2024])
+```
+
+Filter the data and calculate the next score value.
+
+```{python}
+def process_next_score_data(df):
+    # Base filtering
+    filtered = df[
+        (df['season_type'] == 'REG') &
+        (df['ep'].notna()) &
+        (df['posteam'].notna()) &
+        (~df['play_type'].isin(['extra_point', 'two_point_attempt']))
+    ].copy()
+
+    # Step A: Identify home scoring events
+    def calc_home_score_event(row):
+        if row['touchdown'] == 1 and row['td_team'] == row['home_team']:
+            return 7.0
+        elif row['touchdown'] == 1 and row['td_team'] == row['away_team']:
+            return -7.0
+        elif row['field_goal_result'] == 'made' and row['posteam'] == row['home_team']:
+            return 3.0
+        elif row['field_goal_result'] == 'made' and row['posteam'] == row['away_team']:
+            return -3.0
+        elif row['safety'] == 1 and row['defteam'] == row['home_team']:
+            return 2.0
+        elif row['safety'] == 1 and row['defteam'] == row['away_team']:
+            return -2.0
+        return np.nan
+
+    filtered['home_scoring_event'] = filtered.apply(calc_home_score_event, axis=1)
+
+    # Step B: Backfill within game_id and game_half
+    filtered['home_scoring_event'] = (
+        filtered.groupby(['game_id', 'game_half'])['home_scoring_event']
+        .bfill()
+    )
+
+    # Step C: Fill remaining missing with 0
+    filtered['home_scoring_event'] = filtered['home_scoring_event'].fillna(0)
+
+    # Step D: Convert to possession team perspective
+    filtered['pts_next_score'] = np.where(
+        filtered['posteam'] == filtered['home_team'],
+        filtered['home_scoring_event'],
+        -filtered['home_scoring_event']
+    )
+
+    # Apply garbage time filter
+    filtered = filtered[
+        (filtered['wp'].notna()) &
+        (filtered['wp'] >= 0.05) &
+        (filtered['wp'] <= 0.95)
+    ].copy()
+
+    return filtered
+
+pbp_filtered = process_next_score_data(pbp_2024)
+```
+
+Next, we evaluate model calibration by plotting predicted expected values against actual points binned into half-point windows.
+
+```{python}
+def plot_calibration(df, bin_width=0.5, min_plays=50, title_suffix="2024 NFL Season"):
+    df_copy = df.copy()
+    df_copy['ep_bin'] = (df_copy['ep'] / bin_width).round() * bin_width
+
+    cal_data = df_copy.groupby('ep_bin').agg(
+        actual_pts=('pts_next_score', 'mean'),
+        plays=('pts_next_score', 'count')
+    ).reset_index()
+
+    cal_data = cal_data[cal_data['plays'] >= min_plays]
+
+    fig, ax = plt.subplots(figsize=(8, 6))
+    sns.scatterplot(
+        data=cal_data, x='ep_bin', y='actual_pts', size='plays', 
+        sizes=(30, 300), color='#013369', alpha=0.7, ax=ax
+    )
+    ax.plot([-4, 7], [-4, 7], linestyle='--', color='#D50A0A', linewidth=2, label='Perfect Calibration')
+    
+    ax.set_xticks(range(-4, 8))
+    ax.set_yticks(range(-4, 8))
+    ax.set_title(f"Expected Points Calibration ({title_suffix})", fontweight='bold', fontsize=14)
+    ax.set_xlabel("Expected Points (Binned)")
+    ax.set_ylabel("Average Actual Next Score")
+    ax.legend(title="Number of Plays", loc="upper left")
+    plt.tight_layout()
+    plt.show()
+
+plot_calibration(pbp_filtered)
+```
+
+### Task 1
+
+1. Redo the calibration plot using 0.25-point bins.
+
+
+```{python}
+# put your code here
+```
+
+2. Load 2025 data and run the calibration.
+
+```{python}
+#put your code here
+```
+
+```{python}
+plot_calibration(pbp_filtered, bin_width=0.25, title_suffix="2024 Season - 0.25 Bins")
+
+# Task 1.2: 2025 Data Calibration
+pbp_2025 = nfl.import_pbp_data([2025])
+pbp_2025_filtered = process_next_score_data(pbp_2025)
+plot_calibration(pbp_2025_filtered, bin_width=0.25, title_suffix="2025 Season - 0.25 Bins")
+```
+
+### Custom Linear Regression Drive Score Model
+
+Rather than a multinomial logit model, we fit a standard linear regression model target: `drive_score_change`.
+
+```{python}
+model_data = pbp_filtered.sort_values(['game_id', 'play_id']).copy()
+
+# 1. Post-play scores
+model_data['home_score_post'] = np.where(
+    model_data['posteam'] == model_data['home_team'],
+    model_data['posteam_score_post'],
+    model_data['defteam_score_post']
+)
+model_data['away_score_post'] = np.where(
+    model_data['posteam'] == model_data['away_team'],
+    model_data['posteam_score_post'],
+    model_data['defteam_score_post']
+)
+
+# 2. Group by game and drive
+model_data = model_data[model_data['drive'].notna()].copy()
+
+drive_summary = model_data.groupby(['game_id', 'drive']).agg(
+    first_home_score=('total_home_score', 'first'),
+    last_home_score=('home_score_post', 'last'),
+    first_away_score=('total_away_score', 'first'),
+    last_away_score=('away_score_post', 'last'),
+    drive_posteam=('posteam', 'first')
+).reset_index()
+
+drive_summary['drive_home_pts'] = drive_summary['last_home_score'] - drive_summary['first_home_score']
+drive_summary['drive_away_pts'] = drive_summary['last_away_score'] - drive_summary['first_away_score']
+
+model_data = model_data.merge(
+    drive_summary[['game_id', 'drive', 'drive_home_pts', 'drive_away_pts', 'drive_posteam']], 
+    on=['game_id', 'drive'], how='left'
+)
+
+# 3. Calculate net drive score change
+model_data['drive_score_change'] = np.where(
+    model_data['drive_posteam'] == model_data['home_team'],
+    model_data['drive_home_pts'] - model_data['drive_away_pts'],
+    model_data['drive_away_pts'] - model_data['drive_home_pts']
+)
+
+# Filter missing predictors
+model_data = model_data[
+    model_data['down'].notna() &
+    model_data['half_seconds_remaining'].notna() &
+    model_data['yardline_100'].notna() &
+    model_data['ydstogo'].notna() &
+    model_data['goal_to_go'].notna() &
+    (model_data['ydstogo'] > 0)
+].copy()
+
+model_data['log_ydstogo'] = np.log(model_data['ydstogo'])
+model_data['under_two_minutes'] = (model_data['half_seconds_remaining'] <= 120).astype(int)
+model_data['down'] = model_data['down'].astype(int).astype(str)
+
+# Fit OLS Model
+ep_model = smf.ols(
+    "drive_score_change ~ C(down) + half_seconds_remaining + yardline_100 + log_ydstogo + goal_to_go + under_two_minutes",
+    data=model_data
+).fit()
+
+model_data['predicted_score_change'] = ep_model.predict(model_data)
+print(ep_model.summary())
+```
+
+### Calibration: Custom Linear Model
+
+```{python}
+model_data['pred_bin'] = (model_data['predicted_score_change'] * 2).round() / 2
+
+cal_custom = model_data.groupby('pred_bin').agg(
+    actual_pts=('drive_score_change', 'mean'),
+    plays=('drive_score_change', 'count')
+).reset_index()
+
+cal_custom = cal_custom[cal_custom['plays'] >= 50]
+
+fig, ax = plt.subplots(figsize=(8, 6))
+sns.scatterplot(data=cal_custom, x='pred_bin', y='actual_pts', size='plays', sizes=(30, 300), color='#013369', alpha=0.7, ax=ax)
+ax.plot([-4, 7], [-4, 7], linestyle='--', color='#D50A0A', linewidth=2)
+ax.set_xticks(range(-4, 8))
+ax.set_yticks(range(-4, 8))
+ax.set_title("Custom Model Calibration (Linear Regression)", fontweight='bold', fontsize=14)
+ax.set_xlabel("Predicted Score Change (Binned)")
+ax.set_ylabel("Average Actual Drive Score Change")
+plt.tight_layout()
+plt.show()
+```
+
+### Model Comparison: nflfastR EP vs. Custom Linear Model
+
+```{python}
+model_data['ep_bin'] = (model_data['ep'] * 4).round() / 4
+
+comp_data = model_data.groupby('ep_bin').agg(
+    avg_custom_pred=('predicted_score_change', 'mean'),
+    plays=('predicted_score_change', 'count')
+).reset_index()
+
+comp_data = comp_data[comp_data['plays'] >= 50]
+
+fig, ax = plt.subplots(figsize=(8, 6))
+sns.scatterplot(data=comp_data, x='ep_bin', y='avg_custom_pred', size='plays', sizes=(30, 300), color='#013369', alpha=0.7, ax=ax)
+ax.plot([-4, 7], [-4, 7], linestyle='--', color='#D50A0A', linewidth=2)
+ax.set_xticks(range(-4, 8))
+ax.set_yticks(range(-4, 8))
+ax.set_title("Model Comparison: nflfastR EP vs. Custom Linear EP", fontweight='bold', fontsize=14)
+ax.set_xlabel("Standard nflfastR EP (Binned)")
+ax.set_ylabel("Average Custom Model Prediction")
+plt.tight_layout()
+plt.show()
+```
+
+### Task 2
+
+Explain this plot.  Why are the blue dots not on the red dashed line?  Is that an indication of a bad model?
+
+```{python}
+#put code here
+```
+
+### Non-Linearity Analysis: Field Position & Yards To Go Curves
+
+Need a helper function below to give Python the same flexibility in models as R
+
+```{python}
+import numpy as np
+
+def loess_smooth(x, y, frac=0.25, degree=1):
+    """
+    Fits a local polynomial regression (LOESS) with custom degree and span.
+    
+    Parameters:
+    -----------
+    x : array-like
+        Independent variable data.
+    y : array-like
+        Dependent variable data.
+    frac : float (default=0.25)
+        Fraction of total points to include in local neighborhood (span).
+    degree : int (default=1)
+        Polynomial degree (0 = constant, 1 = linear, 2 = quadratic).
+    """
+    x = np.asarray(x, dtype=float)
+    y = np.asarray(y, dtype=float)
+    n = len(x)
+    k = max(int(np.ceil(frac * n)), degree + 1)
+    
+    x_grid = np.linspace(x.min(), x.max(), 100)
+    y_grid = np.zeros_like(x_grid)
+    
+    for i, xi in enumerate(x_grid):
+        distances = np.abs(x - xi)
+        idx = np.argsort(distances)[:k]
+        
+        max_dist = distances[idx[-1]]
+        if max_dist == 0:
+            weights = np.ones(k)
+        else:
+            u = distances[idx] / max_dist
+            weights = np.clip((1 - u**3)**3, 0, None)
+            
+        w_fit = np.sqrt(weights)
+        
+        if np.sum(weights) == 0:
+            y_grid[i] = np.mean(y[idx])
+        else:
+            coeffs = np.polyfit(x[idx], y[idx], deg=degree, w=w_fit)
+            y_grid[i] = np.polyval(coeffs, xi)
+            
+    return x_grid, y_grid
+```
+
+Code to make a locally smoothed (LOWESS) plot of Expected Points vs Yards to Opponent Endzone by Down
+
+```{python}
+# 1. Prepare and aggregate field position data
+plot_data = (
+    model_data[model_data['down'].isin(['1', '2', '3', '4'])]
+    .groupby(['down', 'yardline_100'])
+    .agg(
+        nflfastR_EP=('ep', 'mean'),
+        Custom_Linear_EP=('predicted_score_change', 'mean'),
+        plays=('ep', 'count')
+    )
+    .reset_index()
+)
+plot_data = plot_data[plot_data['plays'] >= 10]
+
+# --- Parameters to customize ---
+FRAC = 0.25   # Fractional window size (span)
+DEGREE = 2    # 1 for linear, 2 for quadratic local fit
+# -------------------------------
+
+fig, axes = plt.subplots(1, 2, figsize=(12, 5), sharey=True)
+models = [('Standard nflfastR Model', 'nflfastR_EP'), ('Custom Linear Model', 'Custom_Linear_EP')]
+palette = {'1': '#e41a1c', '2': '#377eb8', '3': '#4daf4a', '4': '#984ea3'}
+
+for ax, (model_title, ep_col) in zip(axes, models):
+    for down_val in ['1', '2', '3', '4']:
+        sub = plot_data[plot_data['down'] == down_val]
+        
+        # Apply LOESS with custom frac and degree
+        x_smooth, y_smooth = loess_smooth(
+            sub['yardline_100'], sub[ep_col], frac=FRAC, degree=DEGREE
+        )
+        
+        ax.plot(
+            x_smooth, y_smooth, 
+            label=f"Down {down_val}", 
+            color=palette[down_val], 
+            linewidth=2.5
+        )
+    
+    ax.set_title(model_title, fontweight='bold', fontsize=12)
+    ax.set_xlabel("Yards to Opponent Endzone (yardline_100)")
+    ax.set_ylabel("Expected Points (EP)" if ax == axes[0] else "")
+    ax.grid(True, linestyle='--', alpha=0.6)
+
+axes[1].legend(title="Down", bbox_to_anchor=(1.05, 1), loc='upper left')
+fig.suptitle(f"Expected Points by Down and Field Position (frac={FRAC}, degree={DEGREE})", fontweight='bold', fontsize=14, y=1.02)
+plt.tight_layout()
+plt.show()
+```
+
+```{python}
+# 1. Prepare and aggregate yards to go data
+plot_ydstogo = (
+    model_data[
+        (model_data['down'].isin(['1', '2', '3', '4'])) &
+        (model_data['ydstogo'] >= 1) & (model_data['ydstogo'] <= 20)
+    ]
+    .groupby(['down', 'ydstogo'])
+    .agg(
+        nflfastR_EP=('ep', 'mean'),
+        Custom_Linear_EP=('predicted_score_change', 'mean'),
+        plays=('ep', 'count')
+    )
+    .reset_index()
+)
+plot_ydstogo = plot_ydstogo[plot_ydstogo['plays'] >= 10]
+
+# --- Parameters to customize ---
+FRAC_YDS = 0.4# Fractional window size (span)
+DEGREE_YDS = 2  # 1 for linear, 2 for quadratic local fit
+# -------------------------------
+
+fig, axes = plt.subplots(1, 2, figsize=(12, 5), sharey=True)
+models = [('Standard nflfastR Model', 'nflfastR_EP'), ('Custom Linear Model', 'Custom_Linear_EP')]
+
+for ax, (model_title, ep_col) in zip(axes, models):
+    for down_val in ['1', '2', '3', '4']:
+        sub = plot_ydstogo[plot_ydstogo['down'] == down_val]
+        
+        # Apply LOESS with custom frac and degree
+        x_smooth, y_smooth = loess_smooth(
+            sub['ydstogo'], sub[ep_col], frac=FRAC_YDS, degree=DEGREE_YDS
+        )
+        
+        ax.plot(
+            x_smooth, y_smooth, 
+            label=f"Down {down_val}", 
+            color=palette[down_val], 
+            linewidth=2.5
+        )
+    
+    ax.set_title(model_title, fontweight='bold', fontsize=12)
+    ax.set_xlabel("Yards to Go (ydstogo)")
+    ax.set_xticks(range(1, 21, 2))
+    ax.set_ylabel("Expected Points (EP)" if ax == axes[0] else "")
+    ax.grid(True, linestyle='--', alpha=0.6)
+
+axes[1].legend(title="Down", bbox_to_anchor=(1.05, 1), loc='upper left')
+fig.suptitle(f"Expected Points by Down and Yards to Go (frac={FRAC_YDS}, degree={DEGREE_YDS})", fontweight='bold', fontsize=14, y=1.02)
+plt.tight_layout()
+plt.show()
+```
+
+### Task 3: Filter 4th Quarter Extreme Win Probabilities
+Filter out 4th quarter plays with win probability < 0.10 OR > 0.90 in addition to existing filters.
+
+```{python}
+#put your code here
+```
+
+```{python}
+task3_data = model_data[
+    ~((model_data['qtr'] == 4) & ((model_data['wp'] < 0.10) | (model_data['wp'] > 0.90)))
+].copy()
+
+ep_model_task3 = smf.ols(
+    "drive_score_change ~ C(down) + half_seconds_remaining + yardline_100 + log_ydstogo + goal_to_go + under_two_minutes",
+    data=task3_data
+).fit()
+
+print(ep_model_task3.summary())
+```
+
+### Task 4: Multi-Year Analysis (2022-2025)
+
+```{python}
+#put your code here
+```
+
+```{python}
+
+pbp_multi = nfl.import_pbp_data(list(range(2022, 2026)))
+pbp_multi_filtered = process_next_score_data(pbp_multi)
+
+# Perform model fit across 2022-2025 multi-year dataset
+# (Same logic applied to pbp_multi_filtered)
+```
+

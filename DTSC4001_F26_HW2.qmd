@@ -1,0 +1,23 @@
+---
+title: "DTSC4001_HW2"
+author: "Schuckers"
+format: html
+editor: visual
+---
+
+## Homework 2  Due 8/31/26 7p
+
+For the assignment below, email to me a link to a github repository with working code that does the following things.  Be sure to tell me what file I am supposed to look at and how I am to run the code.
+
+
+### All students:
+
+1. (25 points) Using data from college football seasons 2022 to 2025, filter to the games that are only FBS v FBS and make the plots from the Expected Points notebook from class using that data.  
+Explain in a paragraph the differences between the NFL model and the FBS-only model.  
+
+2. (25 points)  In class we talked about the 3rd and X model.  Using data from the most recent 5 NFL seasons, fit the model described in class and in a well written paragraph evaluate the claim that ``all teams in the NFL are equally good at making 3rd and X.''  Explain any choices that you made regarding the data and the models.
+
+### ITCS 5010 Students:
+
+3. (20 points) Repeat \#2 above, using college football data.  Explain any choices that you made regarding the data and the models.  
+
