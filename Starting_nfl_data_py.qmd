@@ -3,6 +3,7 @@ title: "Introduction to NFL Data Analysis with Python (`nfl_data_py`)"
 subtitle: "SPOA 4001/ItCS 5010: American Football Analytics"
 author: "Schuckers"
 date: "2026-08-16"
+jupyter: python3
 format:
   html:
     toc: true
