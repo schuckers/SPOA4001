@@ -10,7 +10,7 @@ format:
     theme: flatly
     highlight-style: github
 execute:
-  output: true
+  output: false
   warning: false
   message: false
 ---

@@ -1,0 +1,593 @@
+---
+title: "Explaining FBS Win Probability via Post-Game Box Scores"
+author: "Schuckers"
+date: "2026-08-31"
+format:
+  html:
+    toc: true
+    toc-depth: 3
+    theme: flatly
+    code-fold: show
+    df-print: paged
+execute:
+  warning: false
+  message: false
+---
+
+### Executive Summary
+
+This analysis constructs an explanatory classification workflow analyzing FBS vs. FBS college football games from **2020 to 2025**. Using real game-level box score statistics sourced via `cfbfastR`, we model the post-game probability of winning ($P(\text{Win} = 1)$) based on game-level performance differentials.
+
+### 1. Setup & Data Loading
+
+We load the required R packages and pull real post-game team statistics using `cfbfastR`. 
+
+```{r echo=FALSE}
+Sys.setenv(CFBD_API_KEY = "MullWLpxkoKVq3XEFcHdC+RiYq1VtVUbuTdPz9v954k7/YmfI0m05GVO2jn+k7aj")
+```
+
+```{r}
+
+library(cfbfastR)
+library(tidyverse)
+library(rsample)
+library(broom)
+library(yardstick)
+library(knitr)
+library(scales)
+library(recipes)
+```
+
+*Decision: how to structure data?*
+
+Each team separately, OR each team as a difference, OR home and away on same line 
+
+Below I started by looking at the differences.  Note that
+the argument *rows_per_team* seems to be misnamed and should be *rows_per_game*.
+
+```{r}
+seasons <- 2020:2025
+weeks <- 1:15
+
+# Container list for weekly box score stats
+stats_list <- list()
+
+# Loop through each season and week to collect game team stats
+for (yr in seasons) {
+  for (wk in weeks) {
+    print(paste0("Attempting week " ,wk, " of ",yr))
+    stats <- tryCatch({
+      cfbfastR::cfbd_game_team_stats(
+        year = yr,
+        week = wk,
+        division = "fbs",
+        rows_per_team = 1
+      ) %>%
+        mutate(season = as.character(yr), week_num = wk)
+    }, error = function(e) {
+      NULL
+    })
+    
+    if (!is.null(stats) && nrow(stats) > 0) {
+      stats_list[[paste(yr, wk, sep = "_")]] <- stats
+    }
+  }
+}
+
+raw_team_stats <- bind_rows(stats_list)
+
+
+
+glimpse(raw_team_stats)
+```
+
+
+
+
+
+### Data Filter and feature engineering
+
+```{r}
+#function to change time into seconds
+parse_time_sec <- function(time_str) {
+  parts <- strsplit(as.character(time_str), ":")[[1]]
+  if (length(parts) == 2) {
+    return(as.numeric(parts[1]) * 60 + as.numeric(parts[2]))
+  }
+  return(1800)
+}
+
+# clear the data
+cfb_cleaned <- raw_team_stats %>%
+  filter(!is.na(points), !is.na(points_allowed), points != points_allowed) %>%
+  mutate(
+    win = if_else(as.numeric(points) > as.numeric(points_allowed), 1, 0),
+    win_factor = factor(win, levels = c(1, 0), labels = c("Win", "Loss")),
+    season = factor(season)
+  ) %>%
+  separate(third_down_eff, c("td_comp", "td_att"), sep = "-", convert = TRUE, fill = "right") %>%
+  separate(third_down_eff_allowed, c("td_comp_opp", "td_att_opp"), sep = "-", convert = TRUE, fill = "right") %>%
+  separate(total_penalties_yards, c("pen_cnt", "pen_yds"), sep = "-", convert = TRUE, fill = "right") %>%
+  separate(total_penalties_yards_allowed, c("pen_cnt_opp", "pen_yds_opp"), sep = "-", convert = TRUE, fill = "right") %>%
+  rowwise() %>%
+  mutate(
+    top_sec = parse_time_sec(possession_time),
+    top_sec_opp = parse_time_sec(possession_time_allowed)
+  ) %>%
+  ungroup() %>%
+  mutate(
+    across(c(total_yards, net_passing_yards, rushing_yards, turnovers, 
+             first_downs, turnovers_allowed, total_yards_allowed, 
+             net_passing_yards_allowed, rushing_yards_allowed, first_downs_allowed,
+             pen_yds, pen_yds_opp), as.numeric),
+    
+    third_down_pct     = if_else(td_att > 0, td_comp / td_att, 0),
+    third_down_pct_opp = if_else(td_att_opp > 0, td_comp_opp / td_att_opp, 0),
+    
+    # Differential Features
+    turnover_margin    = turnovers_allowed - turnovers,
+    pass_yards_diff    = net_passing_yards - net_passing_yards_allowed,
+    rush_yards_diff    = rushing_yards - rushing_yards_allowed,
+    first_downs_diff   = first_downs - first_downs_allowed,
+    third_down_pct_diff= third_down_pct - third_down_pct_opp,
+    penalty_yards_diff = pen_yds - pen_yds_opp,
+    top_seconds_diff   = top_sec - top_sec_opp
+  ) %>%
+  select(game_id, season, week_num, win, win_factor, home_away,turnover_margin, pass_yards_diff, 
+         rush_yards_diff, first_downs_diff, third_down_pct_diff, 
+         penalty_yards_diff, top_seconds_diff) %>%
+  drop_na()
+
+cfb_cleaned <- cfb_cleaned %>% 
+  slice(which(row_number() %% 2 == 0))
+
+head(cfb_cleaned) %>% kable(digits = 2)
+```
+
+
+```{r}
+set.seed(2026)
+
+game_split <- initial_split(cfb_cleaned, prop = 0.80, strata = season)
+train_data <- training(game_split)
+test_data  <- testing(game_split)
+
+# Train vs. Test proportions by season
+season_split_summary <- train_data %>%
+  count(season, name = "Train_Games") %>%
+  inner_join(test_data %>% count(season, name = "Test_Games"), by = "season") %>%
+  mutate(
+    Total_Games = Train_Games + Test_Games,
+    Train_Pct = round(Train_Games / Total_Games * 100, 1)
+  )
+
+kable(season_split_summary, caption = "Season-Stratified Train/Test Split Distribution (2020–2025)")
+```
+
+```{r}
+
+
+predictors <- c("turnover_margin", "pass_yards_diff", "rush_yards_diff", 
+                "first_downs_diff", "third_down_pct_diff", 
+                "penalty_yards_diff", "top_seconds_diff")
+
+# Create recipe to normalize features on the training set
+cfb_recipe <- recipe(win ~ ., data = train_data %>% select(win,home_away, all_of(predictors))) %>%
+  step_normalize(all_of(predictors)) %>%
+  prep()
+
+# Bake standardized training and test datasets (guarantees identical numeric types)
+train_scaled <- bake(cfb_recipe, new_data = NULL)
+test_scaled  <- bake(cfb_recipe, new_data = test_data)
+
+# Fit Logistic Regression Model
+win_model_z <- glm(win ~ ., data = train_scaled, family = binomial(link = "logit"))
+
+# Feature Importance Ranking
+feature_importance <- tidy(win_model_z, conf.int = TRUE) %>%
+  filter(term != "(Intercept)") %>%
+  mutate(
+    Predictor = term,
+    Importance_z = abs(statistic),
+    Odds_Ratio_1SD = exp(estimate),
+    OR_Low = exp(conf.low),
+    OR_High = exp(conf.high)
+  ) %>%
+  arrange(desc(Importance_z))
+
+kable(
+  feature_importance %>% 
+    select(Predictor, `Std Beta` = estimate, `Odds Ratio (1 SD)` = Odds_Ratio_1SD, `z-statistic` = statistic, `Importance (|z|)` = Importance_z, `p-value` = p.value),
+  digits = 3,
+  caption = "Post-Game Feature Importance Ranked by Standardized |z|-score (with Home Advantage)"
+)
+
+# Plot Feature Importance
+ggplot(feature_importance, aes(x = reorder(Predictor, Importance_z), y = Importance_z, fill = Importance_z)) +
+  geom_col(show.legend = FALSE) +
+  coord_flip() +
+  scale_fill_viridis_c(option = "mako", direction = -1) +
+  labs(
+    title = "FBS Win Probability: Feature Importance Ranking (Incl. Home Team)",
+    subtitle = "Standardized Wald z-statistic magnitude across season-stratified training data",
+    x = "Model Feature",
+    y = "Feature Importance (|z-score|)"
+  ) +
+  theme_minimal()
+```
+
+```{r}
+# Predict probabilities on the prepared test set
+test_preds <- test_data %>%
+  mutate(
+    pred_prob = predict(win_model_z, newdata = test_scaled, type = "response"),
+    pred_class = factor(if_else(pred_prob >= 0.5, 1, 0), levels = c("1", "0")),
+    actual_class = factor(win, levels = c("1", "0"))
+  )
+
+overall_metrics <- tibble(
+  Metric = c("Accuracy", "ROC AUC", "Log Loss", "Brier Score"),
+  `Test Score` = c(
+    accuracy_vec(test_preds$actual_class, test_preds$pred_class),
+    roc_auc_vec(test_preds$actual_class, test_preds$pred_prob),
+    mn_log_loss_vec(test_preds$actual_class, test_preds$pred_prob),
+    mean((test_preds$win - test_preds$pred_prob)^2)
+  )
+)
+
+kable(overall_metrics, digits = 4, caption = "Out-of-Sample Performance on Stratified Test Data")
+```
+
+### Calibration plots
+
+#### Calibration plot all seasons
+
+```{r}
+
+
+# Compute binned observed win rates across all test seasons combined
+calibration_data_overall <- test_preds %>%
+  mutate(
+    prob_bin = cut(pred_prob, breaks = seq(0, 1, by = 0.1), include.lowest = TRUE)
+  ) %>%
+  group_by(prob_bin) %>%
+  summarise(
+    mean_pred = mean(pred_prob),
+    actual_win_rate = mean(win),
+    game_count = n(),
+    .groups = "drop"
+  ) %>%
+  drop_na()
+
+# Plot aggregate calibration curve
+ggplot(calibration_data_overall, aes(x = mean_pred, y = actual_win_rate)) +
+  geom_abline(slope = 1, intercept = 0, linetype = "dashed", color = "firebrick", linewidth = 0.8) +
+  geom_line(color = "royalblue", linewidth = 1) +
+  geom_point(aes(size = game_count), color = "royalblue", alpha = 0.8) +
+  scale_x_continuous(limits = c(0, 1), labels = percent_format(accuracy = 1)) +
+  scale_y_continuous(limits = c(0, 1), labels = percent_format(accuracy = 1)) +
+  scale_size_continuous(range = c(3, 8), labels = comma) +
+  labs(
+    title = "Overall Win Probability Calibration (Combined Test Set)",
+    subtitle = "Dashed line = perfect calibration; Points = binned mean predictions vs. observed win rate",
+    x = "Mean Predicted Win Probability",
+    y = "Observed Win Rate",
+    size = "Test Sample Size"
+  ) +
+  theme_minimal() +
+  theme(
+    panel.grid.minor = element_blank(),
+    plot.title = element_text(face = "bold", size = 13),
+    axis.title = element_text(face = "bold")
+  )
+```
+
+
+#### Calibration plots by season
+
+```{r}
+
+
+# Compute binned observed win rates per season
+calibration_data <- test_preds %>%
+  mutate(
+    prob_bin = cut(pred_prob, breaks = seq(0, 1, by = 0.1), include.lowest = TRUE)
+  ) %>%
+  group_by(season, prob_bin) %>%
+  summarise(
+    mean_pred = mean(pred_prob),
+    actual_win_rate = mean(win),
+    game_count = n(),
+    .groups = "drop"
+  ) %>%
+  drop_na()
+
+# Plot calibration curves faceted by season
+ggplot(calibration_data, aes(x = mean_pred, y = actual_win_rate)) +
+  geom_abline(slope = 1, intercept = 0, linetype = "dashed", color = "firebrick", linewidth = 0.8) +
+  geom_line(color = "royalblue", linewidth = 1) +
+  geom_point(aes(size = game_count), color = "royalblue", alpha = 0.8) +
+  facet_wrap(~ season, ncol = 3) +
+  scale_x_continuous(limits = c(0, 1), labels = percent_format(accuracy = 1)) +
+  scale_y_continuous(limits = c(0, 1), labels = percent_format(accuracy = 1)) +
+  scale_size_continuous(range = c(2, 6)) +
+  labs(
+    title = "Win Probability Model Calibration by Season (2020–2025 Test Set)",
+    subtitle = "Dashed line = perfect calibration; Points = binned mean predictions vs observed wins",
+    x = "Mean Predicted Win Probability",
+    y = "Observed Win Rate",
+    size = "Test Games"
+  ) +
+  theme_minimal() +
+  theme(
+    panel.grid.minor = element_blank(),
+    strip.text = element_text(face = "bold", size = 11)
+  )
+```
+
+## Change the data structure to single team
+
+```{r}
+#seasons <- 2024:2025
+#weeks <- 1:15
+
+stats_list <- list()
+
+for (yr in seasons) {
+  for (wk in weeks) {
+    print(paste0("Attempting week " ,wk, " of ",yr))
+    stats <- tryCatch({
+      cfbfastR::cfbd_game_team_stats(
+        year = yr,
+        week = wk,
+        division = "fbs",
+        rows_per_team = 2
+      ) %>%
+        mutate(season = as.character(yr), week_num = wk)
+    }, error = function(e) {
+      NULL
+    })
+    
+    if (!is.null(stats) && nrow(stats) > 0) {
+      stats_list[[paste(yr, wk, sep = "_")]] <- stats
+    }
+  }
+}
+```
+
+### Data Filtering and Feature Engineering
+
+```{r}
+parse_time_sec <- function(time_str) {
+  parts <- strsplit(as.character(time_str), ":")[[1]]
+  if (length(parts) == 2) {
+    return(as.numeric(parts[1]) * 60 + as.numeric(parts[2]))
+  }
+  return(1800)
+}
+
+cfb_cleaned <- raw_team_stats %>%
+  filter(!is.na(points), !is.na(points_allowed), points != points_allowed) %>%
+  mutate(
+    win = if_else(as.numeric(points) > as.numeric(points_allowed), 1, 0),
+    win_factor = factor(win, levels = c(1, 0), labels = c("Win", "Loss")),
+    season = factor(season),
+    is_home = if_else(str_to_lower(home_away) == "home", 1, 0)
+  ) %>%
+  separate(third_down_eff, c("td_comp", "td_att"), sep = "-", convert = TRUE, fill = "right") %>%
+  separate(third_down_eff_allowed, c("td_comp_opp", "td_att_opp"), sep = "-", convert = TRUE, fill = "right") %>%
+  separate(total_penalties_yards, c("pen_cnt", "pen_yds"), sep = "-", convert = TRUE, fill = "right") %>%
+  separate(total_penalties_yards_allowed, c("pen_cnt_opp", "pen_yds_opp"), sep = "-", convert = TRUE, fill = "right") %>%
+  rowwise() %>%
+  mutate(
+    top_sec = parse_time_sec(possession_time),
+    top_sec_opp = parse_time_sec(possession_time_allowed)
+  ) %>%
+  ungroup() %>%
+  mutate(
+    across(c(total_yards, net_passing_yards, rushing_yards, turnovers, 
+             first_downs, turnovers_allowed, total_yards_allowed, 
+             net_passing_yards_allowed, rushing_yards_allowed, first_downs_allowed,
+             pen_yds, pen_yds_opp), as.numeric),
+    
+    third_down_pct     = if_else(td_att > 0, td_comp / td_att, 0),
+    third_down_pct_opp = if_else(td_att_opp > 0, td_comp_opp / td_att_opp, 0)
+  ) %>%
+  select(
+    game_id, season, week_num, win, win_factor, is_home,
+    # Individual Team Performance Features
+    turnovers, turnovers_allowed,
+    rushing_yards, rushing_yards_allowed,
+    net_passing_yards, net_passing_yards_allowed,
+    first_downs, first_downs_allowed,
+    third_down_pct, third_down_pct_opp,
+    pen_yds, top_sec
+  ) %>%
+  drop_na()
+
+cfb_cleaned <- cfb_cleaned %>% 
+  slice(which(row_number() %% 2 == 0))
+
+head(cfb_cleaned) %>% kable(digits = 2)
+```
+
+### Split Data into Train/Test stratified by season
+
+```{r}
+set.seed(2026)
+
+game_split <- initial_split(cfb_cleaned, prop = 0.80, strata = season)
+train_data <- training(game_split)
+test_data  <- testing(game_split)
+
+season_split_summary <- train_data %>%
+  count(season, name = "Train_Games") %>%
+  inner_join(test_data %>% count(season, name = "Test_Games"), by = "season") %>%
+  mutate(
+    Total_Games = Train_Games + Test_Games,
+    Train_Pct = round(Train_Games / Total_Games * 100, 1)
+  )
+
+kable(season_split_summary, caption = "Season-Stratified Train/Test Split Distribution (2020–2025)")
+```
+
+### Rescale the predictors
+
+```{r}
+predictors <- c(
+  "is_home", "turnovers", "turnovers_allowed",
+  "rushing_yards", "rushing_yards_allowed",
+  "net_passing_yards", "net_passing_yards_allowed",
+  "first_downs", "first_downs_allowed",
+  "third_down_pct", "third_down_pct_opp",
+  "pen_yds", "top_sec"
+)
+
+# Preprocessing recipe: Normalize numeric features on the training set
+cfb_recipe <- recipe(win ~ ., data = train_data %>% select(win, all_of(predictors))) %>%
+  step_normalize(all_of(predictors)) %>%
+  prep()
+
+# Prepare normalized train and test sets
+train_scaled <- bake(cfb_recipe, new_data = NULL)
+test_scaled  <- bake(cfb_recipe, new_data = test_data)
+
+# Fit Logistic Regression Model on Individual Features
+win_model_z <- glm(win ~ ., data = train_scaled, family = binomial(link = "logit"))
+
+# Feature Importance Ranking
+feature_importance <- tidy(win_model_z, conf.int = TRUE) %>%
+  filter(term != "(Intercept)") %>%
+  mutate(
+    Predictor = term,
+    Importance_z = abs(statistic),
+    Odds_Ratio_1SD = exp(estimate),
+    OR_Low = exp(conf.low),
+    OR_High = exp(conf.high)
+  ) %>%
+  arrange(desc(Importance_z))
+
+kable(
+  feature_importance %>% 
+    select(Predictor, `Std Beta` = estimate, `Odds Ratio (1 SD)` = Odds_Ratio_1SD, `z-statistic` = statistic, `Importance (|z|)` = Importance_z, `p-value` = p.value),
+  digits = 3,
+  caption = "Individual Team Feature Importance Ranked by Standardized |z|-score"
+)
+
+# Feature Importance Visualization
+ggplot(feature_importance, aes(x = reorder(Predictor, Importance_z), y = Importance_z, fill = Importance_z)) +
+  geom_col(show.legend = FALSE) +
+  coord_flip() +
+  scale_fill_viridis_c(option = "mako", direction = -1) +
+  labs(
+    title = "FBS Win Probability: Individual Team Feature Importance",
+    subtitle = "Standardized Wald z-statistic magnitude (No net differential metrics)",
+    x = "Individual Team Metric",
+    y = "Feature Importance (|z-score|)"
+  ) +
+  theme_minimal()
+```
+
+Create predictions
+
+```{r}
+test_preds <- test_data %>%
+  mutate(
+    pred_prob = predict(win_model_z, newdata = test_scaled, type = "response"),
+    pred_class = factor(if_else(pred_prob >= 0.5, 1, 0), levels = c("1", "0")),
+    actual_class = factor(win, levels = c("1", "0"))
+  )
+
+overall_metrics <- tibble(
+  Metric = c("Accuracy", "ROC AUC", "Log Loss", "Brier Score"),
+  `Test Score` = c(
+    accuracy_vec(test_preds$actual_class, test_preds$pred_class),
+    roc_auc_vec(test_preds$actual_class, test_preds$pred_prob),
+    mn_log_loss_vec(test_preds$actual_class, test_preds$pred_prob),
+    mean((test_preds$win - test_preds$pred_prob)^2)
+  )
+)
+
+kable(overall_metrics, digits = 4, caption = "Out-of-Sample Performance on Individual Team Feature Model")
+```
+
+#### Calibration in Test Set
+
+```{r}
+calibration_data_overall <- test_preds %>%
+  mutate(
+    prob_bin = cut(pred_prob, breaks = seq(0, 1, by = 0.1), include.lowest = TRUE)
+  ) %>%
+  group_by(prob_bin) %>%
+  summarise(
+    mean_pred = mean(pred_prob),
+    actual_win_rate = mean(win),
+    game_count = n(),
+    .groups = "drop"
+  ) %>%
+  drop_na()
+
+ggplot(calibration_data_overall, aes(x = mean_pred, y = actual_win_rate)) +
+  geom_abline(slope = 1, intercept = 0, linetype = "dashed", color = "firebrick", linewidth = 0.8) +
+  geom_line(color = "royalblue", linewidth = 1) +
+  geom_point(aes(size = game_count), color = "royalblue", alpha = 0.8) +
+  scale_x_continuous(limits = c(0, 1), labels = percent_format(accuracy = 1)) +
+  scale_y_continuous(limits = c(0, 1), labels = percent_format(accuracy = 1)) +
+  scale_size_continuous(range = c(3, 8), labels = comma) +
+  labs(
+    title = "Overall Win Probability Calibration (Individual Team Features)",
+    subtitle = "Combined test set across all seasons (2020–2025)",
+    x = "Mean Predicted Win Probability",
+    y = "Observed Win Rate",
+    size = "Test Games"
+  ) +
+  theme_minimal() +
+  theme(
+    panel.grid.minor = element_blank(),
+    plot.title = element_text(face = "bold", size = 13),
+    axis.title = element_text(face = "bold")
+  )
+```
+
+
+#### Calibration plots by season
+
+```{r}
+
+
+# Compute binned observed win rates per season
+calibration_data <- test_preds %>%
+  mutate(
+    prob_bin = cut(pred_prob, breaks = seq(0, 1, by = 0.1), include.lowest = TRUE)
+  ) %>%
+  group_by(season, prob_bin) %>%
+  summarise(
+    mean_pred = mean(pred_prob),
+    actual_win_rate = mean(win),
+    game_count = n(),
+    .groups = "drop"
+  ) %>%
+  drop_na()
+
+# Plot calibration curves faceted by season
+ggplot(calibration_data, aes(x = mean_pred, y = actual_win_rate)) +
+  geom_abline(slope = 1, intercept = 0, linetype = "dashed", color = "firebrick", linewidth = 0.8) +
+  geom_line(color = "royalblue", linewidth = 1) +
+  geom_point(aes(size = game_count), color = "royalblue", alpha = 0.8) +
+  facet_wrap(~ season, ncol = 3) +
+  scale_x_continuous(limits = c(0, 1), labels = percent_format(accuracy = 1)) +
+  scale_y_continuous(limits = c(0, 1), labels = percent_format(accuracy = 1)) +
+  scale_size_continuous(range = c(2, 6)) +
+  labs(
+    title = "Win Probability Model Calibration by Season (2020–2025 Test Set)",
+    subtitle = "Dashed line = perfect calibration; Points = binned mean predictions vs observed wins",
+    x = "Mean Predicted Win Probability",
+    y = "Observed Win Rate",
+    size = "Test Games"
+  ) +
+  theme_minimal() +
+  theme(
+    panel.grid.minor = element_blank(),
+    strip.text = element_text(face = "bold", size = 11)
+  )
+```
