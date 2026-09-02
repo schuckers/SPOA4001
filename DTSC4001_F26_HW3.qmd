@@ -1,0 +1,22 @@
+---
+title: "DTSC4001_HW2"
+author: "Schuckers"
+format: html
+editor: visual
+---
+
+## Homework 3  Due 9/11/26 7p
+
+For the assignment below, email to me a link to a github repository with working code that does the following things.  Be sure to tell me what file I am supposed to look at and how I am to run the code.
+
+
+### All students:
+
+1. [25 points] Build a webpage that takes a gameid from the 2025 season and plots the win probability for each team.  Using college football data and assume that the teams are both FBS teams.
+
+2. [25 points] Build a post game win probability model for the NFL using data from the last five seasons.  Be sure to provide out of sample test results and calibration plots.  Compare multiple models and describe how they compare.  Clearly state which model is best and why.
+
+### ITCS 5010 Students:
+
+3. [20 points] Describe in a paragraph how you would predict NFL game outcomes for week 1.  Use our modelling framework and specify the data you would use, the models, etc
+
