@@ -7,7 +7,7 @@ editor: visual
 
 ## Homework 3  Due 9/11/26 7p
 
-For the assignment below, email to me a link to a github repository with working code that does the following things.  Be sure to tell me what file I am supposed to look at and how I am to run the code.
+For the assignment below, email to me a link to the webpage.  Be sure to tell me what file I am supposed to look at and how I am to run the code.  Hint: don't store the data on github.
 
 
 ### All students:
