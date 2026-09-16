@@ -16,8 +16,9 @@ For the assignment below, email to me a link to the webpage.  Be sure to tell me
 
 2. [20 points]  Assess which of the models has the best predictive out of sample performance by splitting each season into train and test sets.  Explain why your choice of split(s) is appropriate.
 
+3. [20 points]  Assess which of the models has the best repeatbility by splitting each season into train and test sets.  Explain why your choice of split(s) is appropriate
 
 
 ### ITCS 5010 Students:
 
-2. [20 points] For the adjusted game control model and the adjusted awp model, determine the correlation between the unadjusted values and the adjusted values for each.  Calculate the correlation by season and for all seasons combined.
+4. [20 points] For the adjusted game control model and the adjusted awp model, determine the correlation between the unadjusted values and the adjusted values for each.  Calculate the correlation by season and for all seasons combined.
