@@ -42,7 +42,8 @@ games_clean <- raw_games %>%
     completed == TRUE,
     !is.na(home_points),
     !is.na(away_points),
-    season_type %in% c("regular", "postseason")
+    away_division=="fbs",
+    season_type %in% c("regular")
   ) %>%
   select(season, week, home_team, away_team, home_points, away_points) %>%
   arrange(season, week)
