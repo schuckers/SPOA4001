@@ -1,0 +1,221 @@
+---
+title: "College Football Team Ratings (2022–2025)"
+author: "Schuckers"
+format: 
+  html:
+    toc: true
+    theme: cosmo
+execute:
+  output: false
+  warning: false
+  message: false
+---
+
+
+### Overview
+
+This analysis fetches College Football (CFB) game scores from 2022 through 2025 using `cfbfastR` and calculates three rating models from first principles without external rating packages:
+
+
+
+```{r setup}
+# Install required packages if missing:
+# install.packages(c("cfbfastR", "dplyr", "tidyr", "purrr", "knitr"))
+
+library(cfbfastR)
+library(dplyr)
+library(tidyr)
+library(purrr)
+library(knitr)
+```
+
+Data Import & Preprocessing
+```{r}
+
+seasons <- 2022:2025
+
+raw_games <- load_cfb_schedules(seasons)
+
+# Clean and filter for completed games with valid scores
+games_clean <- raw_games %>%
+  filter(
+    completed == TRUE,
+    !is.na(home_points),
+    !is.na(away_points),
+    season_type %in% c("regular", "postseason")
+  ) %>%
+  select(season, week, home_team, away_team, home_points, away_points) %>%
+  arrange(season, week)
+```
+
+Here I've given you functions *from scratch* meaning that the code below
+does the calculations.  Note that there are packages/libraries in R and Python for doing all of these but you don't get to see the raw calculations.
+```{r}
+
+# 1. Scratch Elo Calculation
+calc_elo_scratch <- function(df, k_val = 20, init_rating = 1500) {
+  teams <- unique(c(df$home_team, df$away_team))
+  ratings <- setNames(rep(init_rating, length(teams)), teams)
+  
+  for (i in seq_len(nrow(df))) {
+    home <- df$home_team[i]
+    away <- df$away_team[i]
+    
+    r_home <- ratings[home]
+    r_away <- ratings[away]
+    
+    # Expected win probability for home team
+    e_home <- 1 / (1 + 10^((r_away - r_home) / 400))
+    
+    # Actual score outcome (1 = Win, 0.5 = Tie, 0 = Loss)
+    if (df$home_points[i] > df$away_points[i]) {
+      s_home <- 1
+    } else if (df$home_points[i] < df$away_points[i]) {
+      s_home <- 0
+    } else {
+      s_home <- 0.5
+    }
+    
+    # Update ratings
+    ratings[home] <- r_home + k_val * (s_home - e_home)
+    ratings[away] <- r_away + k_val * ((1 - s_home) - (1 - e_home))
+  }
+  
+  data.frame(
+    team = names(ratings),
+    Elo = round(unname(ratings), 1),
+    stringsAsFactors = FALSE
+  )
+}
+```
+
+Here's the Bradley-Terry formulation via the Logistic Regression.  Note that we start with a matrix of zeroes with a column for each team and a row for each game.  We then fill in with $1$'s and $-1$'s for the home team and the away team respectively.  
+
+```{r}
+# Scratch Bradley-Terry Calculation (Logistic Regression)
+calc_bt_scratch <- function(df) {
+  # Remove ties if any exist
+  df_bt <- df %>% filter(home_points != away_points)
+  
+  teams <- unique(c(df_bt$home_team, df_bt$away_team))
+  n_games <- nrow(df_bt)
+  
+  # Construct design matrix: Home (+1), Away (-1)
+  X <- matrix(0, nrow = n_games, ncol = length(teams))
+  colnames(X) <- teams
+  
+  for (i in seq_len(n_games)) {
+    X[i, df_bt$home_team[i]] <- 1
+    X[i, df_bt$away_team[i]] <- -1
+  }
+  
+  y <- ifelse(df_bt$home_points > df_bt$away_points, 1, 0)
+  
+  # Fit logistic regression model without intercept
+  fit <- glm(y ~ 0 + X, family = binomial(link = "logit"))
+  
+  bt_vec <- coef(fit)
+  names(bt_vec) <- gsub("^X", "", names(bt_vec))
+  bt_vec[is.na(bt_vec)] <- 0  # Replace unestimated reference level with 0
+  
+  # Center ability parameters around zero
+  bt_centered <- bt_vec - mean(bt_vec, na.rm = TRUE)
+  
+  data.frame(
+    team = names(bt_centered),
+    BradleyTerry = round(unname(bt_centered), 3),
+    stringsAsFactors = FALSE
+  )
+}
+```
+
+We do the same for the Simple Rating System (SRS) Calculation (Linear Model)
+```{r}
+calc_srs_scratch <- function(df) {
+  teams <- unique(c(df$home_team, df$away_team))
+  n_games <- nrow(df)
+  
+  # Construct design matrix: Home (+1), Away (-1)
+  X <- matrix(0, nrow = n_games, ncol = length(teams))
+  colnames(X) <- teams
+  
+  for (i in seq_len(n_games)) {
+    X[i, df$home_team[i]] <- 1
+    X[i, df$away_team[i]] <- -1
+  }
+  
+  margin <- df$home_points - df$away_points
+  fit <- lm(margin ~ 0 + X)
+  
+  srs_vec <- coef(fit)
+  names(srs_vec) <- gsub("^X", "", names(srs_vec))
+  srs_vec[is.na(srs_vec)] <- 0
+  
+  srs_centered <- srs_vec - mean(srs_vec, na.rm = TRUE)
+  
+  data.frame(
+    team = names(srs_centered),
+    SRS = round(unname(srs_centered), 2),
+    stringsAsFactors = FALSE
+  )
+}
+```
+
+
+Below is a function for calculating the ratings by season for each of the methods above.  
+```{r}
+
+compute_season_ratings <- function(season_df) {
+  year <- season_df$season[1]
+  
+  elo_df <- calc_elo_scratch(season_df)
+  bt_df  <- calc_bt_scratch(season_df)
+  srs_df <- calc_srs_scratch(season_df)
+  
+  elo_df %>%
+    full_join(bt_df, by = "team") %>%
+    full_join(srs_df, by = "team") %>%
+    mutate(season = year) %>%
+    arrange(desc(SRS))
+}
+
+# Execute loop across split season datasets
+ratings_by_season <- games_clean %>%
+  group_split(season) %>%
+  map(compute_season_ratings) %>%
+  bind_rows()
+```
+
+Top 10 Rankings by Season
+
+```{r}
+
+for (yr in sort(unique(ratings_by_season$season))) {
+  cat("\n### Season:", yr, "\n\n")
+  
+  top_rankings <- ratings_by_season %>%
+    filter(season == yr) %>%
+    arrange(desc(SRS)) %>%
+    slice_head(n = 10) %>%
+    mutate(Rank = row_number()) %>%
+    select(
+      Rank,
+      Team = team,
+      `SRS Rating` = SRS,
+      `Elo Rating` = Elo,
+      `Bradley-Terry` = BradleyTerry
+    )
+  
+  print(
+    kable(
+      top_rankings,
+      format = "markdown",
+      align = c("c", "l", "r", "r", "r")
+    )
+  )
+  cat("\n")
+}
+
+```
+
+

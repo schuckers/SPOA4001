@@ -1,0 +1,23 @@
+---
+title: "DTSC4001_HW4"
+author: "Schuckers"
+format: html
+editor: visual
+---
+
+## Homework   Due 9/25/26 7p
+
+For the assignment below, email to me a link to the webpage.  Be sure to tell me what file I am supposed to look at and how I am to run the code.  Hint: don't store the data on github.
+
+
+### All students:
+
+1. [30 points] Build three models for FBS team evaluation: an SRS model of score differential only, an opponent adjusted game control model, and an opponent adjusted average win probability (awp) model.  Give the top 10 and botton 10 teams for each season from 2021 to 2025.
+
+2. [20 points]  Assess which of the models has the best predictive out of sample performance by splitting each season into train and test sets.  Explain why your choice of split(s) is appropriate.
+
+
+
+### ITCS 5010 Students:
+
+2. [20 points] For the adjusted game control model and the adjusted awp model, determine the correlation between the unadjusted values and the adjusted values for each.  Calculate the correlation by season and for all seasons combined.

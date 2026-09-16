@@ -1,0 +1,295 @@
+---
+title: "NFL Season Game Control Ratings (2020–2025)"
+author: "Schuckers"
+format: 
+  html:
+    toc: true
+    theme: cosmo
+execute:
+  output: false
+  warning: false
+  message: false
+---
+
+## Game Control
+
+Game Control measures a team's play-by-play dominance by calculating their time-weighted average score differential across a game. A positive rating indicates how many points on average a team led by throughout the contest duration:
+
+$$\text{Game Control}_{\text{game}} = \frac{\sum (\text{Score Differential}_i \times \Delta t_i)}{\sum \Delta t_i}$$
+
+$$\text{Season Game Control} = \frac{1}{N_{\text{games}}} \sum_{g=1}^{N_{\text{games}}} \text{Game Control}_g$$
+
+Below we add the libraries we will need below.
+
+```{r setup}
+# Install required packages if missing:
+# install.packages(c("nflreadr", "dplyr", "tidyr", "purrr", "knitr"))
+
+library(nflreadr)
+library(dplyr)
+library(tidyr)
+library(purrr)
+library(knitr)
+library(ggplot2)
+library(nflplotR)
+
+```
+
+Data Import & Processing
+
+We pull official NFL play-by-play data from 2020 through 2025 using nflreadr::load_pbp()
+and filter the data to get clean regular season data.
+
+```{r}
+
+seasons <- 2020:2025
+
+# Fetch Play-by-Play data
+pbp_raw <- load_pbp(seasons = seasons)
+
+# Filter completed plays and compute duration between play events
+pbp_clean <- pbp_raw %>%
+  filter(
+    season_type %in% c("REG"),
+    !is.na(game_seconds_remaining),
+    !is.na(total_home_score),
+    !is.na(total_away_score),
+    !is.na(home_team),
+    !is.na(away_team)
+  ) %>%
+  arrange(season, game_id, desc(game_seconds_remaining)) %>%
+  group_by(game_id) %>%
+  mutate(
+    home_lead = total_home_score - total_away_score,
+    # Elapsed seconds from previous play state
+    play_duration = lag(game_seconds_remaining, default = 3600) - game_seconds_remaining,
+    play_duration = ifelse(play_duration < 0, 0, play_duration)
+  ) %>%
+  ungroup()
+```
+
+
+### Game Control Calculation
+
+Here is the actual code for game control calculations.  We'll get home and away game control here so it is easier to get the data into a long form.
+```{r}
+
+# Calculate time-weighted score differential per game for home and away teams
+game_control_by_game <- pbp_clean %>%
+  group_by(season, game_id, home_team, away_team) %>%
+  summarize(
+    total_time = sum(play_duration, na.rm = TRUE),
+    home_gc = sum(home_lead * play_duration, na.rm = TRUE) / ifelse(total_time > 0, total_time, 1),
+    away_gc = -home_gc,
+    .groups = "drop"
+  )
+
+# Reshape data into long team-game format
+team_games <- bind_rows(
+  game_control_by_game %>% select(season, game_id, team = home_team, game_control = home_gc),
+  game_control_by_game %>% select(season, game_id, team = away_team, game_control = away_gc)
+)
+
+# Aggregate across each season
+season_game_control <- team_games %>%
+  group_by(season, team) %>%
+  summarize(
+    games_played = n(),
+    avg_game_control = round(mean(game_control, na.rm = TRUE), 2),
+    .groups = "drop"
+  ) %>%
+  arrange(season, desc(avg_game_control))
+```
+
+
+Here are the Top 10 Game Control Teams by Season
+
+```{r}
+
+for (yr in sort(unique(season_game_control$season))) {
+  cat("\n### Season:", yr, "\n\n")
+  
+  top_10 <- season_game_control %>%
+    filter(season == yr) %>%
+    slice_head(n = 10) %>%
+    mutate(Rank = row_number()) %>%
+    select(
+      Rank,
+      Team = team,
+      `Games Played` = games_played,
+      `Avg Game Control (Points)` = avg_game_control
+    )
+  
+  print(
+    kable(
+      top_10,
+      format = "markdown",
+      align = c("c", "l", "c", "r")
+    )
+  )
+  cat("\n")
+}
+```
+### Adjusted Game Control
+
+Below we calculate the adjusted game control which adjusts for the opponent as well as whether a team is home or away.
+
+Note that code here for calculating the adjusted game score.  We first build a matrix with all zeros.  The number of rows is the number of games and the number of columns is the number of teams.  We then replace some of the zeroes in a row with a $1$ for the home team of a game and a $-1$ for the away team of the game.  We also add an intercept term to the matrix which is just a column of ones.
+
+
+
+```{r}
+calc_adj_gc_scratch <- function(df) {
+  teams <- unique(c(df$home_team, df$away_team))
+  n_games <- nrow(df)
+  
+  # Construct design matrix: Home (+1), Away (-1)
+  X <- matrix(0, nrow = n_games, ncol = length(teams))
+  colnames(X) <- teams
+  
+  for (i in seq_len(n_games)) {
+    X[i, df$home_team[i]] <- 1
+    X[i, df$away_team[i]] <- -1
+  }
+  
+  margin <- df$home_gc
+  fit <- lm(margin ~ 1 + X)
+  
+  srs_vec <- coef(fit)
+  names(srs_vec) <- gsub("^X", "", names(srs_vec))
+  srs_vec[is.na(srs_vec)] <- 0
+  
+  srs_centered <- srs_vec - mean(srs_vec, na.rm = TRUE)
+  
+  data.frame(
+    team = names(srs_centered),
+    season=df$season[1],
+   Adj_GC = round(unname(srs_centered), 2),
+    stringsAsFactors = FALSE
+  )
+}
+```
+
+This next set of code is some slickness to run the function above by season and bind the resulting output.
+
+```{r}
+ratings_by_season <- game_control_by_game %>%
+  group_split(season) %>%
+  map(calc_adj_gc_scratch ) %>%
+  bind_rows()
+```
+
+Below we get the sorted values in the model.
+
+```{r}
+for (yr in sort(unique(ratings_by_season$season))) {
+  cat("\n### Season:", yr, "\n\n")
+  
+  top_10 <- ratings_by_season %>%
+    filter(season == yr) %>%
+    arrange(desc(Adj_GC))%>%
+    mutate(Rank = row_number()) %>%
+    select(
+      Rank,
+      season,
+      Team = team,
+     Adj_game_control=Adj_GC
+    ) 
+  
+  print(
+    kable(
+      top_10,
+      format = "markdown",
+      align = c("c", "l", "c", "r")
+    )
+  )
+  cat("\n")
+}
+```
+### Task
+
+0. What does the (Intercept) represent for these data?
+
+
+With the code below, we want to investigate the correlation between Average game control and adjusted game control.  First we join the data and drop the intercept terms.
+
+```{r}
+all_df <- season_game_control %>%
+  right_join(ratings_by_season,by=c("season","team")) %>%
+  filter(team !="(Intercept)")
+
+
+```
+
+Make a plot with logos for the plotting points.
+
+```{r}
+# Install required packages if missing:
+# install.packages(c("ggplot2", "nflplotR", "dplyr"))
+
+
+
+# Construct the plot
+g<-ggplot(all_df, aes(x = avg_game_control, y = Adj_GC)) +
+  # Quadrant baseline reference lines
+  geom_hline(yintercept = 0, linetype = "dashed", color = "gray70", linewidth = 0.6) +
+  geom_vline(xintercept = 0, linetype = "dashed", color = "gray70", linewidth = 0.6) +
+  
+  # 1:1 Parity line (shows effect of opponent adjustment)
+  geom_abline(slope = 1, intercept = 0, linetype = "dotted", color = "firebrick", alpha = 0.7) +
+  
+  # Render Team Logos (adjust width to scale logo sizes up or down)
+  geom_nfl_logos(aes(team_abbr = team), width = 0.04, alpha = 0.95) +
+  
+  # Labels and Titles
+  labs(
+    title = "NFL Raw vs. Opponent-Adjusted Game Control",
+    subtitle = "Teams above the red dotted line benefited from tough schedule adjustments",
+    x = "Raw Average Game Control (Points Lead/Trail)",
+    y = "Adjusted Game Control (Points Lead/Trail)",
+    caption = "Visualization created with nflplotR"
+  ) +
+  
+  # Custom Theme Styling
+  theme_minimal(base_size = 12) +
+  theme(
+    plot.title = element_text(face = "bold", size = 16, hjust = 0.5),
+    plot.subtitle = element_text(size = 11, color = "gray30", hjust = 0.5, margin = margin(b = 10)),
+    axis.title = element_text(face = "bold"),
+    panel.grid.minor = element_blank(),
+    plot.margin = margin(15, 15, 15, 15)
+  )
+g
+```
+Make the same plot but put the team colors as the plot points instead of the logos.
+
+```{r}
+# install.packages("ggrepel")
+library(ggrepel)
+
+ggplot(all_df, aes(x = avg_game_control, y = Adj_GC, color = team)) +
+  geom_hline(yintercept = 0, linetype = "dashed", color = "gray70") +
+  geom_vline(xintercept = 0, linetype = "dashed", color = "gray70") +
+  geom_abline(slope = 1, intercept = 0, linetype = "dotted", color = "firebrick") +
+  
+  # Accurate data points styled with team colors
+  geom_point(size = 3) +
+  
+  # Repel team abbreviations automatically away from data points and each other
+  
+  # Apply official NFL primary colors
+  scale_color_nfl(type = "primary") +
+  
+  labs(
+    title = "NFL Game Control: Raw vs. Adjusted",
+    x = "Raw Game Control (Points)",
+    y = "Adjusted Game Control (Points)"
+  ) +
+  theme_minimal() +
+  theme(legend.position = "none")
+```
+### Task
+
+1. Find the correlation by season between the average game control and the adjusted game control.
+
+2. Suppose we build these models for FBS college football teams?  Do you think the correlations that you calculated in the previous task would be similar?  Why or why not?
