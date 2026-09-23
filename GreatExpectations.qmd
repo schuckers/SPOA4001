@@ -1,0 +1,139 @@
+---
+title: "GreatExpectations"
+author: "Schuckers"
+format: html
+editor: visual
+execute:
+  output: false
+  warning: false
+  message: false
+---
+
+So I made up a fictitious yards after catch (yac) dataset.  I'm going to clean
+the data up and made the values in *counts* a bit smaller.
+```{r}
+library(dplyr)
+players=c("A","A","B","B","C","C")
+yac=c(2,6,3,7,4,4)
+type=c("short","long","short","long","short","long")
+counts=c(10,50,40,20,30,30)
+yac_df=data.frame(players,yac,type,counts)
+```
+So regression is a way to "adjust" the yac values for each player and account for the type of pass.  So let's look at these data first.
+
+```{r}
+print(yac_df)
+```
+
+### Task 
+How much better on average is player B than player A?
+
+
+
+
+Now let's try a regression to see if the model gets this right.  The weights
+argument here allows us to treat each row as if it represented the value
+for that row in the *counts* variable.  So that with the code below we are telling the regression to create 10 copies of the first row of *yac_df* and 50 copies of the second row of *yac_df* and so on.
+```{r}
+reg1<-lm(yac~players+type,weights=counts, data=yac_df)
+summary(reg1)
+```
+### Task 
+From the model above, *reg1*, how much better on average is player B than player A?  How do you know?
+
+Hmmm.  That did not go well.  
+
+How to fix this?
+
+There are two ways: one is easy, and the other is pretty technical.
+
+We'll start with the first.  Let's make the counts and therefore
+the weights the same for each player say a 27 and 33 which is roughly the average across all players.
+```{r}
+counts2=c(27,33,27,33,27,33)
+reg2<-lm(yac~players+type, weights=counts2, data=yac_df)
+summary(reg2)
+```
+
+
+### Task 
+From the model above, *reg2*, how much better on average is player B than player A?  How do you know?
+
+
+Let's try a different set of weights.
+```{r}
+counts3=c(20,40,20,40,20,40)
+reg3<-lm(yac~players+type, weights=counts3, data=yac_df)
+summary(reg3)
+```
+
+### Task 
+From the model above, *reg3*, how much better on average is player B than player A?  How do you know?
+```{r}
+counts4=c(50,10,50,10,50,10)
+reg4<-lm(yac~players+type, weights=counts4, data=yac_df)
+summary(reg4)
+```
+### Task 
+From the model above, *reg4*, how much better is player B than player A?  How do you know?
+
+
+Now if you've been paying attention, you'll note that the value for difference between player C and player A has been fluctuating quite a bit.  That is not good.  Our difference between A and B has been fixed but the difference between A and B does depend upon our weights we are selecting.  
+
+Note that the only reason that the change in weights does not affect the *playersB* coefficient is that the difference between the *yac* for player A and player B is the same for short passes as long passes.
+
+So which is the right set of weights?
+I believe the correct set of weights is the *league average weights* which I called *counts2* above.  Actually the breakdown should be 26.67, 33.33 to 
+be exact.  In class I called these $$\bar{w}_i$$ weights.
+
+
+### Linear algebra way
+
+So I said there were two ways above and one was more technical.  I wasn't lying but you need some linear algebra to understand this one.  So if you've not seen linear algebra, then don't continue.
+
+
+
+When software like *R* or *Python* is running a regression with categorical variables such as the *players* feature here, it cannot have all of the players in the mode because that would create a matrix that is non invertible and linear regression of the form $$\underline{y}=\mathbf{X} \underline{\beta}$$ needs to have the data matrix, $\mathbf{X}$, --- sometimes
+called the design matrix --- have its columns be not linearly dependent.  If we have one-hot encoded values for all of the values that the categorical variable takes, then we have an $\mathbf{X}$ matrix that is linearly dependent.  
+
+Note that the solution to the linear algebra equation is $$\hat{\beta}=(\mathbf{X}^T\mathbf{X})^{-1}\mathbf{X}^T \underline{y}$$, so we have to be able to get an inverse from the $\mathbf{X}$ matrix.  If the columns of $\mathbf{X}$ are linearly dependent then so are the columns of $(\mathbf{X}^T\mathbf{X})^{-1}$.  
+
+Dropping a column is not the only way to make our $\mathbf{X}$ matrix not linearly dependent.  An alternative is to force the coefficients for the
+particular variable sum to zero.  That is the coefficients for players A, B 
+and C would sum to one.  This is an approach known as *contrasts* and it 
+involves moditying the $\mathbf{X}$ matrix is a different way before
+calculating the solution given above.
+
+
+To get the right output we have to again use weights that are appropriate.
+
+
+```{r}
+reg5<-lm(yac~players+type, data=yac_df, weights=counts2, contrasts = list(players = contr.sum, type = contr.sum))
+summary(reg5)
+```
+From the above, we get different labels for our coefficients.  So the
+effect of player A, $-0.2667$, is labelled *players1* which is the first of 
+the categories in order.  The effect of player B, $0.7333$, is labelled *players2* which is the second of the categories in order.  The difference
+between B and A is $0.7333- (-0.2667) = 1$.  Just a different way to get
+to the same result.  
+
+
+A final note: running the regression without the weights is the equivalent of using counts=c(1,1,1,1,1,1) which is that each row is represented once.  that'll get you the same coefficients as if you did counts=(30,30,30,30,30,30) but not the correct standard errors.
+```{r}
+
+reg6<-lm(yac~players+type, data=yac_df, contrasts = list(players = contr.sum, type = contr.sum))
+summary(reg6)
+```
+
+
+
+### Task 
++ Change the weights in *reg6* to be all 10 and rerun the regression.  Then make the weights all 100 and rerun the regression.  What changes in the summaries when you do this?
+
+
+
+
+
+
+
