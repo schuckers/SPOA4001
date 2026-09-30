@@ -17,7 +17,7 @@ Using the files on *student*, give me the original score and modified score.  Pr
 
 
 2. [40 points]
-Create an animation of play 4066 from game 2022100210.  Store the animation as a *.gif* file. 
+Create an animation of play *2735* from game *2022100210*.  Store the animation as a *.gif* file. 
 Note that there is plenty of public code for making these animations.  Cite any sources that you use.
 
 
