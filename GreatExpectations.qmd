@@ -4,7 +4,6 @@ author: "Schuckers"
 format: html
 editor: visual
 execute:
-  output: false
   warning: false
   message: false
 ---

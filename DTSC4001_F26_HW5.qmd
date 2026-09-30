@@ -1,0 +1,23 @@
+---
+title: "DTSC4001_HW5"
+author: "Schuckers"
+format: html
+editor: visual
+---
+
+## Homework   Due 10/5/26 7p
+For each part of the assignment below, provide a link to a file on your github site that has the code and the output required for each .  
+
+### All students:
+
+1. [30 points]  On the *hpc-student.charlotte.edu(student)*, inside the *SportsTrackingTransformer* folder for our class, there is a file called *games2.csv*.  
+This is a modified version of the *games.csv* from the 2024 Big Data Bowl.  
+In particular, I've changed the score in that file for the week 6	game between the Chargers and the Broncos.  
+Using the files on *student*, give me the original score and modified score.  Provide the code you used to find each.  I want evidence that you got your answers from the files on student.
+
+
+2. [40 points]
+Create an animation of play 4066 from game 2022100210.  Store the animation as a *.gif* file. 
+Note that there is plenty of public code for making these animations.  Cite any sources that you use.
+
+
