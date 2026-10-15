@@ -1,0 +1,16 @@
+---
+title: "DTSC4001_HW6"
+author: "Schuckers"
+format: html
+editor: visual
+---
+
+## Homework   Due 10/20/26 5p
+
+Note that for this assignment, no late credit will be given since we need the materials below for class on 10/21.
+
+### All students:
+
+1. [25 points]  Email Prof. Schuckers (schuckers at charlotte dot edu) a paragraph description of an idea for the Big Data Bowl.  Your paragraph should make clear the goals of your project, the data you will use and any methods you plan to employ.  Your paragaph should also illustrate your understanding of the data that is available.  Be sure that your idea meets the criteria for a submission [Big Data Bowl Overview ](https://www.kaggle.com/competitions/nfl-big-data-bowl-2027/overview).  That is, the project ``explicitly links Combine sensor tracking data to regular-season NFL game performance''.
+
+
