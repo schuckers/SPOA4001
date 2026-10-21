@@ -1,0 +1,275 @@
+
+---
+title: "NFL Draft Curves"
+author: "Schuckers"
+format: 
+  html:
+    toc: true
+    theme: cosmo
+execute:
+  warning: false
+  message: false
+---
+## NFL Draft Pick Value Curves
+
+So this file is all about making a draft pick value curve/chart (DPVC).  And covering some 
+of the basic techniques for fitting a smooth valuation curve to these data.  Note
+that almost all of these methods apply to different sports.  
+
+There are a couple of choices to be made when you decide to make a DPVC.  The first
+choice is what to have as your target/response.  There are basically three choices
+that have been historically used and one choice that is relatively new.  Historically,
+the options are 1) annual value of a second contract, 2) performance over some
+period (usually over length of team control of first contract), 3) value of historical
+trades.  The first in the list above is market driven and economic, while the second
+is more performance based.  The response/target for these two methods is straightforward
+though the contract data can be more difficult to collect.  The third method is
+somewhat harder to generate in some sports because top picks are rarely traded.
+
+
+```{r}
+library(nflreadr)
+library(dplyr)
+library(ggplot2)
+library(splines)
+library(readr)
+```
+
+### Load in the data from *nflreadr*
+
+```{r}
+# Load draft picks for 2015-2021
+draft_picks <- load_draft_picks(seasons = 2015:2021) %>%
+  select(c(season,round,pick,team,pfr_player_id,pfr_player_name, position,category,side,allpro,probowls,seasons_started,w_av,car_av,dr_av)) %>%
+  filter(!is.na(dr_av))
+```
+
+
+
+### Loess smoothers
+Here we are going to use local smoothing via LOESS 
+```{r}
+# Plot Career_AV vs Overall_Pick with LOESS curve
+ggplot(draft_picks, aes(x = pick, y = dr_av)) +
+  geom_point(alpha = 0.35, color = "#2b5c8f", size = 2) +
+  geom_smooth(
+    method = "loess",
+    formula = y ~ x,
+    span = 0.75,         # Adjust span (0.3 to 1.0) to control smoothing
+    color = "blue",
+    fill = "gray",    # Confidence interval band color
+    se = TRUE,
+    linewidth = 1.2
+  ) +
+  scale_x_continuous(breaks = seq(0, 260, by = 32)) +
+  labs(
+    title = "NFL Draft Picks: Career Approximate Value (AV) vs. Overall Pick",
+    subtitle = "Draft Classes 2015–2021 (Rounds 1–7), span=0.75",
+    x = "Overall Pick Number",
+    y = "Career Approximate Value (AV)",
+    caption = "Data: nflverse / Pro-Football-Reference"
+  ) +
+  theme_minimal(base_size = 13) +
+  theme(
+    plot.title = element_text(face = "bold"),
+    panel.grid.minor = element_blank()
+  )
+```
+
+
+Change the size of the window for LOESS to be smaller.
+```{r}
+#Plot Career_AV vs Overall_Pick with LOESS curve
+
+ggplot(draft_picks, aes(x = pick, y = dr_av)) +
+  geom_point(alpha = 0.35, color = "#2b5c8f", size = 2) +
+  geom_smooth(
+    method = "loess",
+    formula = y ~ x,
+    span = 0.5,         # Adjust span (0.3 to 1.0) to control smoothing
+    color = "blue",
+    fill = "gray",    # Confidence interval band color
+    se = TRUE,
+    linewidth = 1.2
+  ) +
+  scale_x_continuous(breaks = seq(0, 260, by = 32)) +
+  labs(
+    title = "NFL Draft Picks: Career Approximate Value (AV) vs. Overall Pick",
+    subtitle = "Draft Classes 2015–2021 (Rounds 1–7), span=0.5",
+    x = "Overall Pick Number",
+    y = "Career Approximate Value (AV)",
+    caption = "Data: nflverse / Pro-Football-Reference"
+  ) +
+  theme_minimal(base_size = 13) +
+  theme(
+    plot.title = element_text(face = "bold"),
+    panel.grid.minor = element_blank()
+  )
+```
+Change the span again to be much smaller
+```{r}
+# Plot Career_AV vs Overall_Pick with LOESS curve
+
+ggplot(draft_picks, aes(x = pick, y = dr_av)) +
+  geom_point(alpha = 0.35, color = "#2b5c8f", size = 2) +
+  geom_smooth(
+    method = "loess",
+    formula = y ~ x,
+    span = 0.15,         # Adjust span (0.3 to 1.0) to control smoothing
+    color = "blue",
+    fill = "gray",    # Confidence interval band color
+    se = TRUE,
+    linewidth = 1.2
+  ) +
+  scale_x_continuous(breaks = seq(0, 260, by = 32)) +
+  labs(
+    title = "NFL Draft Picks: Career Approximate Value (AV) vs. Overall Pick",
+    subtitle = "Draft Classes 2015–2021 (Rounds 1–7), span=0.15",
+    x = "Overall Pick Number",
+    y = "Career Approximate Value (AV)",
+    caption = "Data: nflverse / Pro-Football-Reference"
+  ) +
+  theme_minimal(base_size = 13) +
+  theme(
+    plot.title = element_text(face = "bold"),
+    panel.grid.minor = element_blank()
+  )
+```
+
+### Splines
+Splines are a class of functions used in regression for splicing lines (splines) together.
+The idea is that you create chunks of the range of your predictor and you place knots every so often.  For example you might put a knot at the end of each draft round.  The splines then fit curves (usually cubic polynomials) between each knot and those fitted curves are forced to be smooth at the knots.   You can define them or have the code use the default for knot placement.  The default placement will put the knots 
+
+```{r}
+# here I define knots for the end of the rounds, every 32 picks.
+knots_fit=c(32, 64, 96, 128, 160, 192, 224)
+fit_spline <- lm(dr_av ~ ns(pick, knots=knots_fit), data = draft_picks)
+
+
+
+#summary(fit_spline)
+
+pick=1:256
+pred_spline=data.frame(pick=1:256,dr_av=predict(fit_spline,newdata=ns(pick,knots=knots_fit)))
+
+# Plot with ggplot2 using statutory spline smoothing
+ggplot(draft_picks, aes(x = pick, y = dr_av)) +
+  geom_point(alpha = 0.3, color = "#2b5c8f") +
+  stat_smooth(
+    method = "lm",
+    formula = y ~ ns(x, df = 4),
+    color = "#e41a1c",
+    linewidth = 1.2,
+    se = TRUE
+  ) +
+  scale_x_continuous(breaks = seq(0, 260, by = 32)) +
+  labs(
+    title = "NFL Draft Pick Value: Spline Regression",
+    subtitle = "Predicting Draft Team AV (dr_av) from Overall Pick Number",
+    x = "Overall Pick Number",
+    y = "Draft Team Approximate Value (dr_av)"
+  ) +
+  theme_minimal(base_size = 13)
+```
+Change the knots to be value 
+```{r}
+
+fit_spline <- lm(dr_av ~ ns(pick, knots=c(5, 10, 32, 64, 96, 128, 160, 192)), data = draft_picks)
+#summary(fit_spline)
+
+pred_spline=data.frame(pick=1:256,dr_av=predict(fit_spline,ns(1:256,knots=c(5, 10, 32, 64, 96, 128, 160, 192))))
+
+# Plot with ggplot2 using statutory spline smoothing
+ggplot(draft_picks, aes(x = pick, y = dr_av)) +
+  geom_point(alpha = 0.3, color = "#2b5c8f") +
+  stat_smooth(
+    method = "lm",
+    formula = y ~ ns(x, df = 4),
+    color = "#e41a1c",
+    linewidth = 1.2,
+    se = TRUE
+  ) +
+  scale_x_continuous(breaks = seq(0, 260, by = 32)) +
+  labs(
+    title = "NFL Draft Pick Value: Spline Regression",
+    subtitle = "Predicting Draft Team AV (dr_av) from Overall Pick Number",
+    x = "Overall Pick Number",
+    y = "Draft Team Approximate Value (dr_av)"
+  ) +
+  theme_minimal(base_size = 13)
+```
+
+```{r}
+the_chart=read_csv("https://webpages.charlotte.edu/mschuck1/sports/JimmyJohnsonPickValueChart.csv")
+g<-ggplot(the_chart, aes(x = Overall_Pick, y =Value)) +
+  geom_line(alpha = 0.3, color = "#2b5c8f") +
+  labs(
+    title = "Jimmy Johnson Draft Pick Value Chart",
+    x = "Overall Pick Number",
+    y = "Draft Value"
+  ) +
+  theme_minimal(base_size = 13)
+g
+```
+
+One challenge is to figure out the relative values for the Jimmy Johnson DVPC vs another chart.  There are a couple ways to do this.  First, you can make the totals sum to the same quantity. Second, you can make the first value have the same value.
+
+So here is the two *raw* DVPC values plotted next to each other. 
+
+```{r}
+
+the_chart=the_chart %>%
+  rename(pick=Overall_Pick,
+         JJ_value=Value)
+
+df_combined =the_chart %>%
+  select(-c(pick))%>%
+  bind_cols(pred_spline[1:224,])
+
+g<-ggplot(df_combined, aes(x = pick, y =JJ_value)) +
+  geom_line(alpha = 0.3, color = "#2b5c8f") +
+  geom_line(aes(x=pick, y=dr_av),alpha=0.4, col="red")+
+  labs(
+    title = "Jimmy Johnson Draft Pick Value Chart",
+    x = "Overall Pick Number",
+    y = "Draft Value"
+  ) +
+  theme_minimal(base_size = 13)
+g
+```
+So let's first rescale so the sums are the same.
+```{r}
+
+df_combined = df_combined %>%
+  mutate(dr_av2=dr_av*sum(JJ_value)/sum(dr_av))
+
+g<-ggplot(df_combined, aes(x = pick, y =JJ_value)) +
+  geom_line(alpha = 0.3, color = "#2b5c8f") +
+  geom_line(aes(x=pick, y=dr_av2),alpha=0.4, col="red")+
+  labs(
+    title = "Jimmy Johnson Draft Pick Value Chart",
+    subtitle="Sums of the two curves are the same",
+    x = "Overall Pick Number",
+    y = "Draft Value"
+  ) +
+  theme_minimal(base_size = 13)
+g
+```
+```{r}
+
+df_combined = df_combined %>%
+  mutate(dr_av3=dr_av*JJ_value[1]/dr_av[1])
+
+g<-ggplot(df_combined, aes(x = pick, y =JJ_value)) +
+  geom_line(alpha = 0.3, color = "#2b5c8f") +
+  geom_line(aes(x=pick, y=dr_av3),alpha=0.4, col="red")+
+  labs(
+    title = "Jimmy Johnson Draft Pick Value Chart",
+     subtitle="Maxes of the curves are the same",
+    x = "Overall Pick Number",
+    y = "Draft Value"
+  ) +
+  theme_minimal(base_size = 13)
+g
+```
+
