@@ -1,0 +1,30 @@
+---
+title: "DTSC4001_HW6"
+author: "Schuckers"
+format: html
+editor: visual
+---
+
+## Homework Due 10/29/26 7p
+
+For the assignment below, you'll make a couple of models and assess them. Be sure to tell me what file I am supposed to look at and how I am to run the code. Hint: don't store the data on github.
+
+### All students:
+
+1.  \[30 points\] Run one of the four BDB submissions that we looked at in class on 10/14 on *hpc-student.charlotte.edu* and give evidence that you ran it via output, screenshots, etc. Data from the 2025 and 2026 Big Data Bowls can be found on *hpc-student.charlotte.edu* in the */projects/class/spoa4001_u01* folder. Note that you can access the github repositories for the submissions to get the relevant code but you'll likely have to move some files to the hpc.
+
+Here are the four submissions:
+
+[Attention is all you Need](https://github.com/SumerSports/SportsTrackingTransformer)
+
+[2026 Winner](https://www.kaggle.com/competitions/nfl-big-data-bowl-2026-analytics/writeups/ghostbusters-back-off-man-im-a-data-scientist)
+
+[2026 Finalist](https://www.kaggle.com/competitions/nfl-big-data-bowl-2026-analytics/writeups/new-writeup-1765813974702)
+
+[2025 Competition](https://www.kaggle.com/code/sarahpollack/under-cover-2-predicting-disguised-defenses)
+
+2.  \[15 points\] Tweak one of the parameters in the model that you run in Question 1 and rerun the analysis. Clearly explain the parameter that you changed and explain how the results have changed.
+
+### ITCS 5010 Students:
+
+3.  \[20 points on different assignment\] Choose a topic and a date for your presentation. The presentation should be 15 to 20 minutes on some topic in football analytics that we have not covered in class. For 10/29 you just need to pick a topic and a date.

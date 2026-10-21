@@ -1,0 +1,19 @@
+---
+title: "ITSC5010_Presentation"
+author: "Schuckers"
+format: html
+editor: visual
+---
+
+## Presentation Assignment
+
+For this presentation you will become an expert on an area of football analytics that we have not yet covered in class.  You'll give a 15-20 minute presentation to the class, provide an example Jupyter Notebook or Quarto file and assign an homework problem (with solutions).  You'll need to have your topic vetted by Professor Schuckers.  
+
+Here's how the grade will break down
+1. [20 points] Choose a topic and a date for your presentation.  The presentation should be 15 to 20 minutes on some topic in football analytics that we have not covered in class.  By *10/29* you just need to pick a topic and a date. You can give your presentation on 11/4 or 11/18.  
+
+2. [40 points]  Presentation.  Your presentation should introduce the topic and cover the data sources, important modelling choices and any particularly good reference work that has been done in the area.  Having interaction/discussion with the class should be part of this presentation.  This part will be graded on quality of the presentation materials, quality of the content, and quality of the interaction with students.  
+
+3. [20 points] Jupyter Notebook/Quarto file.  This should be a file that walks through the data for this area and provides examples of how to analyze these data.  This will be graded on 1) if the file runs, 2) appropriateness of the data, 3) rigor of the methodology/analyses and 4) if the code is well commented.  
+
+4. [20 points]  Homework problem.  Create a single homework problem that your fellow students will complete and send me the solutions.  The grading for this assignment will be based upon the quality of the problem, and the quality of the solutions you provide.  
