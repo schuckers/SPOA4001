@@ -24,8 +24,6 @@ library(cluster)
 library(factoextra)
 library(ggforce)
 library(gganimate)
-
-library(gifski)
 library(av)
 theme_set(theme_minimal(base_size = 12))
 ```
